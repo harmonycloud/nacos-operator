@@ -1,0 +1,20 @@
+# permissions for end users to view nacos.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: nacos-viewer-role
+rules:
+- apiGroups:
+  - harmonycloud.cn.harmonycloud.cn
+  resources:
+  - nacos
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - harmonycloud.cn.harmonycloud.cn
+  resources:
+  - nacos/status
+  verbs:
+  - get

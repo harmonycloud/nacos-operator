@@ -1,0 +1,10 @@
+apiVersion: harmonycloud.cn.harmonycloud.cn/v1alpha1
+kind: Nacos
+metadata:
+  name: nacos-standalone
+spec:
+  # Add fields here
+  type: standalone
+  image: nacos/nacos-server:1.4.1
+  replicas: 1
+

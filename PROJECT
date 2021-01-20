@@ -1,0 +1,11 @@
+domain: harmonycloud.cn
+layout: go.kubebuilder.io/v2
+projectName: nacos-operator
+repo: nacos-operator
+resources:
+- group: harmonycloud.cn
+  kind: Nacos
+  version: v1alpha1
+version: 3-alpha
+plugins:
+  go.sdk.operatorframework.io/v2-alpha: {}
