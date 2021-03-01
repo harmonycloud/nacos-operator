@@ -6,7 +6,7 @@ spec:
   # standalone/cluster
   type: standalone
   image: 10.1.11.100/middleware/nacose:1.4.0
-  replicas: 3
+  replicas: 1
   config: |
     spring.datasource.platform=mysql
     db.num=1

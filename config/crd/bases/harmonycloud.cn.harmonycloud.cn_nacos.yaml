@@ -36,6 +36,8 @@ spec:
         spec:
           description: NacosSpec defines the desired state of Nacos
           properties:
+            config:
+              type: string
             image:
               type: string
             replicas:

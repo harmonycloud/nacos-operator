@@ -153,7 +153,7 @@ func (e *KindClient) buildStatefulset(nacos *harmonycloudcnv1alpha1.Nacos) *appv
 						Name: "config",
 						VolumeSource: v1.VolumeSource{
 							ConfigMap: &v1.ConfigMapVolumeSource{
-								LocalObjectReference: v1.LocalObjectReference{nacos.Name},
+								LocalObjectReference: v1.LocalObjectReference{Name: nacos.Name},
 								Items: []v1.KeyToPath{
 									{
 										Key:  "application.properties",
