@@ -20,6 +20,10 @@ import (
 	"context"
 	"reflect"
 
+	corev1 "k8s.io/api/core/v1"
+
+	"harmonycloud.cn/nacos-operator/pkg/service/operator"
+
 	"github.com/go-logr/logr"
 	k8sErrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -31,19 +35,19 @@ import (
 	harmonycloudcnv1alpha1 "harmonycloud.cn/nacos-operator/api/v1alpha1"
 
 	myErrors "harmonycloud.cn/nacos-operator/pkg/errors"
-	"harmonycloud.cn/nacos-operator/pkg/service/operator"
 )
 
 // NacosReconciler reconciles a Nacos object
 type NacosReconciler struct {
 	client.Client
-	Log     logr.Logger
-	Scheme  *runtime.Scheme
-	Ensurer *operator.ClientEnsurer
+	Log            logr.Logger
+	Scheme         *runtime.Scheme
+	OperaterClient *operator.OperatorClient
 }
 
 // +kubebuilder:rbac:groups=harmonycloud.cn.harmonycloud.cn,resources=nacos,verbs=get;list;watch;create;update;patch;delete
 // +kubebuilder:rbac:groups=harmonycloud.cn.harmonycloud.cn,resources=nacos/status,verbs=get;update;patch
+type reconcileFun func(nacos *harmonycloudcnv1alpha1.Nacos)
 
 func (r *NacosReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 	_ = context.Background()
@@ -58,6 +62,13 @@ func (r *NacosReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 		return reconcile.Result{}, err
 	}
 
+	// 处理全局异常处理中的异常
+	defer func() {
+		if err := recover(); err != nil {
+			r.Log.Error(err.(error), "error")
+		}
+	}()
+
 	// 全局处理异常
 	defer func() {
 		if err := recover(); err != nil {
@@ -65,8 +76,16 @@ func (r *NacosReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 		}
 	}()
 
-	// 保证资源已经创建
-	r.Ensurer.Ensure(instance)
+	for _, fun := range []reconcileFun{
+		// 保证资源能够创建
+		r.OperaterClient.MakeEnsure,
+		// 检查并修复
+		r.OperaterClient.CheckAndMakeHeal,
+		// 保存状态
+		r.OperaterClient.UpdateStatus,
+	} {
+		fun(instance)
+	}
 
 	return ctrl.Result{}, nil
 }
@@ -74,6 +93,7 @@ func (r *NacosReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 func (r *NacosReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&harmonycloudcnv1alpha1.Nacos{}).
+		Owns(&corev1.Pod{}).
 		Complete(r)
 }
 

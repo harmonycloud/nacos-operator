@@ -20,10 +20,9 @@ import (
 	"flag"
 	"os"
 
-	"k8s.io/client-go/kubernetes"
-
-	"harmonycloud.cn/nacos-operator/pkg/service/k8s"
 	"harmonycloud.cn/nacos-operator/pkg/service/operator"
+
+	"k8s.io/client-go/kubernetes"
 
 	"k8s.io/apimachinery/pkg/runtime"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
@@ -75,10 +74,10 @@ func main() {
 	log := ctrl.Log.WithName("controllers").WithName("Nacos")
 	clientset, _ := kubernetes.NewForConfig(ctrl.GetConfigOrDie())
 	if err = (&controllers.NacosReconciler{
-		Client:  mgr.GetClient(),
-		Log:     log,
-		Scheme:  mgr.GetScheme(),
-		Ensurer: operator.NewClientEnsurer(log, k8s.New(clientset, log)),
+		Client:         mgr.GetClient(),
+		Log:            log,
+		Scheme:         mgr.GetScheme(),
+		OperaterClient: operator.NewOperatorClient(log, clientset, mgr.GetScheme()),
 	}).SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "Nacos")
 		os.Exit(1)

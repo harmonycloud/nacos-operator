@@ -1,10 +1,10 @@
 apiVersion: harmonycloud.cn.harmonycloud.cn/v1alpha1
 kind: Nacos
 metadata:
-  name: nacos-standalone
+  name: nacos
 spec:
   # standalone/cluster
-  type: standalone
+  type: cluster
   image: 10.1.11.100/middleware/nacose:1.4.0
   replicas: 3
   config: |

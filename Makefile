@@ -23,6 +23,9 @@ else
 GOBIN=$(shell go env GOBIN)
 endif
 
+
+setup: fmt vet docker-build
+
 all: manager
 
 # Run tests
@@ -121,3 +124,16 @@ bundle: manifests kustomize
 .PHONY: bundle-build
 bundle-build:
 	docker build -f bundle.Dockerfile -t $(BUNDLE_IMG) .
+# 后面的就是自己实现
+demo:
+	kubectl apply -k config/samples
+
+rdemo:
+	kubectl delete -k config/samples
+
+image_operator: docker-build docker-push
+
+image_app:
+	cd docker/nacos-docker/build &&
+
+

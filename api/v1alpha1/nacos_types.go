@@ -30,13 +30,16 @@ type NacosSpec struct {
 
 	Type     string `json:"type,omitempty"`
 	Image    string `json:"image,omitempty"`
-	Replicas *int32   `json:"replicas,omitempty"`
+	Replicas *int32 `json:"replicas,omitempty"`
+	Config   string `json:"config,omitempty"`
 }
 
 // NacosStatus defines the observed state of Nacos
 type NacosStatus struct {
 	// INSERT ADDITIONAL STATUS FIELD - define observed state of cluster
 	// Important: Run "make" to regenerate code after modifying this file
+	Conditions []Condition `json:"conditions,omitempty" patchStrategy:"merge" patchMergeKey:"type" protobuf:"bytes,2,rep,name=conditions"`
+	Phase      string      `json:"phase,omitempty"`
 }
 
 // +kubebuilder:object:root=true
@@ -62,4 +65,26 @@ type NacosList struct {
 
 func init() {
 	SchemeBuilder.Register(&Nacos{}, &NacosList{})
+}
+
+type Condition struct {
+	// Type is the type of the condition.
+	// More info: https://kubernetes.io/docs/concepts/workloads/pods/pod-lifecycle#pod-conditions
+	Type string `json:"type" protobuf:"bytes,1,opt,name=type,casttype=PodConditionType"`
+	// Status is the status of the condition.
+	// Can be True, False, Unknown.
+	// More info: https://kubernetes.io/docs/concepts/workloads/pods/pod-lifecycle#pod-conditions
+	Status string `json:"status" protobuf:"bytes,2,opt,name=status,casttype=ConditionStatus"`
+	// Last time we probed the condition.
+	// +optional
+	LastProbeTime metav1.Time `json:"lastProbeTime,omitempty" protobuf:"bytes,3,opt,name=lastProbeTime"`
+	// Last time the condition transitioned from one status to another.
+	// +optional
+	LastTransitionTime metav1.Time `json:"lastTransitionTime,omitempty" protobuf:"bytes,4,opt,name=lastTransitionTime"`
+	// Unique, one-word, CamelCase reason for the condition's last transition.
+	// +optional
+	Reason string `json:"reason,omitempty" protobuf:"bytes,5,opt,name=reason"`
+	// Human-readable message indicating details about last transition.
+	// +optional
+	Message string `json:"message,omitempty" protobuf:"bytes,6,opt,name=message"`
 }
