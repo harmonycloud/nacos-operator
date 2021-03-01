@@ -124,16 +124,12 @@ bundle: manifests kustomize
 .PHONY: bundle-build
 bundle-build:
 	docker build -f bundle.Dockerfile -t $(BUNDLE_IMG) .
+
 # 后面的就是自己实现
 demo:
 	kubectl apply -f config/samples/harmonycloud.cn_v1alpha1_nacos.yaml
 
-demo-cluster:
-	kubectl apply -f config/samples/harmonycloud.cn_v1alpha1_nacos_cluster.yaml
-
 image_operator: docker-build docker-push
 
-image_app:
-	cd docker/nacos-docker/build &&
 
 

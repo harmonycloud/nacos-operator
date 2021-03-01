@@ -9,7 +9,8 @@ make install
 # 运行operator
 make run
 
-# 打开config/samples/harmonycloud.cn_v1alpha1_nacos.yaml 配置spec.config,设置mysql信息，并导入sql
+# 默认standalone+本地数据库+无存储，容器重启后数据丢失，请勿在生产环境部署
+# 还支持以本地数据库运行、带存储、mysql、集群等配置，参考config/samples
 # 运行demo
 make demo
 
@@ -29,4 +30,3 @@ nacos-standalone-0   1/1     Running   0          84s    10.168.247.38    slave-
 
 ### 自定义实现
 - make demo #创建demo standalone 模式
-- make demo-cluster #创建demo cluster模式

@@ -1,0 +1,16 @@
+apiVersion: harmonycloud.cn.harmonycloud.cn/v1alpha1
+kind: Nacos
+metadata:
+  name: nacos-standalone
+spec:
+  # standalone/cluster
+  type: standalone
+  image: 10.1.11.100/middleware/nacose:1.4.0
+  replicas: 1
+  config: |
+    spring.datasource.platform=mysql
+    db.num=1
+    db.url.0=jdbc:mysql://mysql:3306/nacos?characterEncoding=utf8&connectTimeout=1000&socketTimeout=3000&autoReconnect=true
+    db.user=root
+    db.password=123456
+

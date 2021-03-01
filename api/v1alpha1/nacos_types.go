@@ -17,6 +17,7 @@ limitations under the License.
 package v1alpha1
 
 import (
+	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -28,10 +29,12 @@ type NacosSpec struct {
 	// INSERT ADDITIONAL SPEC FIELDS - desired state of cluster
 	// Important: Run "make" to regenerate code after modifying this file
 
-	Type     string `json:"type,omitempty"`
-	Image    string `json:"image,omitempty"`
-	Replicas *int32 `json:"replicas,omitempty"`
-	Config   string `json:"config,omitempty"`
+	Type                 string                     `json:"type,omitempty"`
+	Image                string                     `json:"image,omitempty"`
+	Replicas             *int32                     `json:"replicas,omitempty"`
+	EnableEmbedded       bool                       `json:"enableEmbedded,omitempty"`
+	Config               string                     `json:"config,omitempty"`
+	VolumeClaimTemplates []v1.PersistentVolumeClaim `json:"volumeClaimTemplates,omitempty" protobuf:"bytes,4,rep,name=volumeClaimTemplates"`
 }
 
 // NacosStatus defines the observed state of Nacos

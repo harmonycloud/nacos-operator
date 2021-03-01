@@ -7,6 +7,14 @@ spec:
   type: standalone
   image: 10.1.11.100/middleware/nacose:1.4.0
   replicas: 1
-  # 开启本地存储
   enableEmbedded: true
+  volumeClaimTemplates:
+  - metadata:
+      name: db
+    spec:
+      accessModes: [ "ReadWriteOnce" ]
+      storageClassName: "default"
+      resources:
+        requests:
+          storage: 100Mi
 

@@ -54,7 +54,6 @@ func (e *KindClient) generateLabels(name string, component string) map[string]st
 // 合并cr中的label 和 固定的label
 func (e *KindClient) MergeLabels(allLabels ...map[string]string) map[string]string {
 	res := map[string]string{}
-
 	for _, labels := range allLabels {
 		if labels != nil {
 			for k, v := range labels {
@@ -66,10 +65,6 @@ func (e *KindClient) MergeLabels(allLabels ...map[string]string) map[string]stri
 }
 
 func (e *KindClient) generateName(nacos *harmonycloudcnv1alpha1.Nacos) string {
-	return nacos.Name
-}
-
-func (e *KindClient) generateHeadlessServiceName(nacos *harmonycloudcnv1alpha1.Nacos) string {
 	return nacos.Name
 }
 
@@ -125,7 +120,7 @@ func (e *KindClient) buildService(nacos *harmonycloudcnv1alpha1.Nacos) *v1.Servi
 			Selector: labels,
 		},
 	}
-	controllerutil.SetControllerReference(nacos, svc, e.scheme)
+	myErrors.EnsureNormal(controllerutil.SetControllerReference(nacos, svc, e.scheme))
 	return svc
 }
 func (e *KindClient) buildStatefulset(nacos *harmonycloudcnv1alpha1.Nacos) *appv1.StatefulSet {
@@ -133,6 +128,22 @@ func (e *KindClient) buildStatefulset(nacos *harmonycloudcnv1alpha1.Nacos) *appv
 	labels := e.generateLabels(nacos.Name, NACOS)
 	// 合并cr中原有的label
 	labels = e.MergeLabels(nacos.Labels, labels)
+
+	env := []v1.EnvVar{}
+	// 启动内置数据库
+	if nacos.Spec.EnableEmbedded {
+		env = append(env, v1.EnvVar{
+			Name:  "EMBEDDED_STORAGE",
+			Value: "embedded",
+		})
+	}
+	// 启动模式 ，默认cluster
+	if nacos.Spec.Type == TYPE_STAND_ALONE {
+		env = append(env, v1.EnvVar{
+			Name:  "MODE",
+			Value: "standalone",
+		})
+	}
 
 	var ss = &appv1.StatefulSet{
 		ObjectMeta: metav1.ObjectMeta{
@@ -181,6 +192,7 @@ func (e *KindClient) buildStatefulset(nacos *harmonycloudcnv1alpha1.Nacos) *appv
 									SubPath:   "application.properties",
 								},
 							},
+							Env: env,
 						},
 					},
 				},
@@ -188,7 +200,16 @@ func (e *KindClient) buildStatefulset(nacos *harmonycloudcnv1alpha1.Nacos) *appv
 		},
 	}
 
-	controllerutil.SetControllerReference(nacos, ss, e.scheme)
+	if len(nacos.Spec.VolumeClaimTemplates) > 0 {
+		ss.Spec.VolumeClaimTemplates = nacos.Spec.VolumeClaimTemplates
+		localVolum := v1.VolumeMount{
+			Name:      "db",
+			MountPath: "/home/nacos/data",
+		}
+		ss.Spec.Template.Spec.Containers[0].VolumeMounts = append(ss.Spec.Template.Spec.Containers[0].VolumeMounts, localVolum)
+	}
+
+	myErrors.EnsureNormal(controllerutil.SetControllerReference(nacos, ss, e.scheme))
 	return ss
 }
 
@@ -207,7 +228,7 @@ func (e *KindClient) buildConfigMap(nacos *harmonycloudcnv1alpha1.Nacos) *v1.Con
 		},
 		Data: data,
 	}
-	controllerutil.SetControllerReference(nacos, &cm, e.scheme)
+	myErrors.EnsureNormal(controllerutil.SetControllerReference(nacos, &cm, e.scheme))
 	return &cm
 }
 
@@ -223,7 +244,7 @@ func (e *KindClient) buildStatefulsetCluster(nacos *harmonycloudcnv1alpha1.Nacos
 			Value: serivce,
 		},
 	}
-	ss.Spec.Template.Spec.Containers[0].Env = env
+	ss.Spec.Template.Spec.Containers[0].Env = append(ss.Spec.Template.Spec.Containers[0].Env, env...)
 	return ss
 }
 
