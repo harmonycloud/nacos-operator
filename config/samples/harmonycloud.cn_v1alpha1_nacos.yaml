@@ -7,6 +7,9 @@ spec:
   type: standalone
   image: 10.1.11.100/middleware/nacose:1.4.0
   replicas: 1
-  # 开启本地存储
+  # 开启本地数据库
   enableEmbedded: true
+  # 配置文件
+  config: |
+    management.endpoints.web.exposure.include=*
 

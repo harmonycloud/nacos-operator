@@ -22,6 +22,7 @@ const TYPE_STAND_ALONE = "standalone"
 const TYPE_CLUSTER = "cluster"
 const NACOS = "nacos"
 const NACOS_PORT = 8848
+const RAFT_PORT = 7848
 
 type IKindClient interface {
 	Ensure(nacos harmonycloudcnv1alpha1.Nacos)
@@ -68,6 +69,10 @@ func (e *KindClient) generateName(nacos *harmonycloudcnv1alpha1.Nacos) string {
 	return nacos.Name
 }
 
+func (e *KindClient) ValidationField(nacos *harmonycloudcnv1alpha1.Nacos) {
+
+}
+
 func (e *KindClient) EnsureStatefulsetCluster(nacos *harmonycloudcnv1alpha1.Nacos) {
 	ss := e.buildStatefulset(nacos)
 	ss = e.buildStatefulsetCluster(nacos, ss)
@@ -81,7 +86,7 @@ func (e *KindClient) EnsureStatefulset(nacos *harmonycloudcnv1alpha1.Nacos) {
 
 func (e *KindClient) EnsureService(nacos *harmonycloudcnv1alpha1.Nacos) {
 	ss := e.buildService(nacos)
-	myErrors.EnsureNormal(e.k8sService.CreateOrUpdateService(nacos.Namespace, ss))
+	myErrors.EnsureNormal(e.k8sService.CreateIfNotExistsService(nacos.Namespace, ss))
 }
 
 func (e *KindClient) EnsureServiceCluster(nacos *harmonycloudcnv1alpha1.Nacos) {
@@ -113,8 +118,14 @@ func (e *KindClient) buildService(nacos *harmonycloudcnv1alpha1.Nacos) *v1.Servi
 		Spec: v1.ServiceSpec{
 			Ports: []v1.ServicePort{
 				{
-					Name: nacos.Name,
-					Port: NACOS_PORT,
+					Name:     "client",
+					Port:     NACOS_PORT,
+					Protocol: "TCP",
+				},
+				{
+					Name:     "rpc",
+					Port:     RAFT_PORT,
+					Protocol: "TCP",
 				},
 			},
 			Selector: labels,
@@ -129,7 +140,12 @@ func (e *KindClient) buildStatefulset(nacos *harmonycloudcnv1alpha1.Nacos) *appv
 	// 合并cr中原有的label
 	labels = e.MergeLabels(nacos.Labels, labels)
 
-	env := []v1.EnvVar{}
+	env := []v1.EnvVar{
+		//v1.EnvVar{
+		//	Name:  "PREFER_HOST_MODE",
+		//	Value: "hostname",
+		//},
+	}
 	// 启动内置数据库
 	if nacos.Spec.EnableEmbedded {
 		env = append(env, v1.EnvVar{
@@ -142,6 +158,10 @@ func (e *KindClient) buildStatefulset(nacos *harmonycloudcnv1alpha1.Nacos) *appv
 		env = append(env, v1.EnvVar{
 			Name:  "MODE",
 			Value: "standalone",
+		})
+		env = append(env, v1.EnvVar{
+			Name:  "NACOS_REPLICAS",
+			Value: "3",
 		})
 	}
 
@@ -181,8 +201,14 @@ func (e *KindClient) buildStatefulset(nacos *harmonycloudcnv1alpha1.Nacos) *appv
 							Image: nacos.Spec.Image,
 							Ports: []v1.ContainerPort{
 								{
-									Name:          "http",
+									Name:          "client",
 									ContainerPort: NACOS_PORT,
+									Protocol:      "TCP",
+								},
+								{
+									Name:          "rpc",
+									ContainerPort: RAFT_PORT,
+									Protocol:      "TCP",
 								},
 							},
 							VolumeMounts: []v1.VolumeMount{

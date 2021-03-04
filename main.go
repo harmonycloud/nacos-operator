@@ -23,13 +23,13 @@ import (
 	"harmonycloud.cn/nacos-operator/pkg/service/operator"
 
 	"k8s.io/client-go/kubernetes"
+	"k8s.io/klog/klogr"
 
 	"k8s.io/apimachinery/pkg/runtime"
 	utilruntime "k8s.io/apimachinery/pkg/util/runtime"
 	clientgoscheme "k8s.io/client-go/kubernetes/scheme"
 	_ "k8s.io/client-go/plugin/pkg/client/auth/gcp"
 	ctrl "sigs.k8s.io/controller-runtime"
-	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 
 	harmonycloudcnv1alpha1 "harmonycloud.cn/nacos-operator/api/v1alpha1"
 	"harmonycloud.cn/nacos-operator/controllers"
@@ -57,8 +57,8 @@ func main() {
 			"Enabling this will ensure there is only one active controller manager.")
 	flag.Parse()
 
-	ctrl.SetLogger(zap.New(zap.UseDevMode(true)))
-
+	//ctrl.SetLogger(zap.New(zap.UseDevMode(true)))
+	ctrl.SetLogger(klogr.New())
 	mgr, err := ctrl.NewManager(ctrl.GetConfigOrDie(), ctrl.Options{
 		Scheme:             scheme,
 		MetricsBindAddress: metricsAddr,
@@ -70,14 +70,17 @@ func main() {
 		setupLog.Error(err, "unable to start manager")
 		os.Exit(1)
 	}
-
 	log := ctrl.Log.WithName("controllers").WithName("Nacos")
+	log.V(0).Info("0")
+	log.V(1).Info("1")
+	log.V(2).Info("2")
+	log.V(3).Info("3")
 	clientset, _ := kubernetes.NewForConfig(ctrl.GetConfigOrDie())
 	if err = (&controllers.NacosReconciler{
 		Client:         mgr.GetClient(),
 		Log:            log,
 		Scheme:         mgr.GetScheme(),
-		OperaterClient: operator.NewOperatorClient(log, clientset, mgr.GetScheme()),
+		OperaterClient: operator.NewOperatorClient(log, clientset, mgr.GetScheme(), mgr.GetClient()),
 	}).SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "Nacos")
 		os.Exit(1)

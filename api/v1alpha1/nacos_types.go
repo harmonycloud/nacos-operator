@@ -28,21 +28,35 @@ import (
 type NacosSpec struct {
 	// INSERT ADDITIONAL SPEC FIELDS - desired state of cluster
 	// Important: Run "make" to regenerate code after modifying this file
-
-	Type                 string                     `json:"type,omitempty"`
+	// 通用配置
 	Image                string                     `json:"image,omitempty"`
+	ImagePullSecrets     []v1.LocalObjectReference  `json:"imagePullSecrets,omitempty" patchStrategy:"merge" patchMergeKey:"name" protobuf:"bytes,15,rep,name=imagePullSecrets"`
 	Replicas             *int32                     `json:"replicas,omitempty"`
-	EnableEmbedded       bool                       `json:"enableEmbedded,omitempty"`
-	Config               string                     `json:"config,omitempty"`
 	VolumeClaimTemplates []v1.PersistentVolumeClaim `json:"volumeClaimTemplates,omitempty" protobuf:"bytes,4,rep,name=volumeClaimTemplates"`
+	Resource             v1.ResourceList            `json:"limits,omitempty" protobuf:"bytes,1,rep,name=resource,casttype=ResourceList,castkey=ResourceName"`
+	Affinity             *v1.Affinity               `json:"affinity,omitempty" protobuf:"bytes,18,opt,name=affinity"`
+	Tolerations          []v1.Toleration            `json:"tolerations,omitempty" protobuf:"bytes,22,opt,name=tolerations"`
+	NodeSelector         map[string]string          `json:"nodeSelector,omitempty" protobuf:"bytes,7,rep,name=nodeSelector"`
+
+	// 自定义配置
+	// 部署模式
+	Type string `json:"type,omitempty"`
+	// 是否开始开启本地数据库
+	EnableEmbedded bool `json:"enableEmbedded,omitempty"`
+	// 配置文件
+	Config string `json:"config,omitempty"`
 }
 
 // NacosStatus defines the observed state of Nacos
 type NacosStatus struct {
 	// INSERT ADDITIONAL STATUS FIELD - define observed state of cluster
 	// Important: Run "make" to regenerate code after modifying this file
+	// 记录实例状态
 	Conditions []Condition `json:"conditions,omitempty" patchStrategy:"merge" patchMergeKey:"type" protobuf:"bytes,2,rep,name=conditions"`
-	Phase      string      `json:"phase,omitempty"`
+	// 记录事件
+	Event []Event `json:"event,omitempty" protobuf:"bytes,4,opt,name=event"`
+	// 运行状态，主要根据这个字段用来判断是否正常
+	Phase Phase `json:"phase,omitempty"`
 }
 
 // +kubebuilder:object:root=true
@@ -70,6 +84,7 @@ func init() {
 	SchemeBuilder.Register(&Nacos{}, &NacosList{})
 }
 
+// 状况
 type Condition struct {
 	// Type is the type of the condition.
 	// More info: https://kubernetes.io/docs/concepts/workloads/pods/pod-lifecycle#pod-conditions
@@ -90,4 +105,37 @@ type Condition struct {
 	// Human-readable message indicating details about last transition.
 	// +optional
 	Message string `json:"message,omitempty" protobuf:"bytes,6,opt,name=message"`
+
+	Instance string `json:"instance,omitempty" protobuf:"bytes,4,opt,name=instance"`
+
+	HostIP string `json:"hostIP,omitempty" protobuf:"bytes,4,opt,name=hostIP"`
+
+	NodeName string `json:"nodeName,omitempty" protobuf:"bytes,4,opt,name=nodeName"`
 }
+
+// 事件
+type Event struct {
+	Status string `json:"status"`
+
+	// 最早出现时间
+	FirstAppearTime metav1.Time `json:"firstAppearTime,omitempty" protobuf:"bytes,3,opt,name=firstAppearTime"`
+
+	// 更新事件
+	LastTransitionTime metav1.Time `json:"lastTransitionTime ,omitempty" protobuf:"bytes,3,opt,name=lastTransitionTime"`
+
+	// 时间描述
+	Message string `json:"message,omitempty" protobuf:"bytes,4,opt,name=message"`
+
+	// 错误码
+	Code int `json:"code,omitempty" protobuf:"bytes,4,opt,name=reason"`
+}
+
+type Phase string
+
+const (
+	PhaseRunning  Phase = "Running"
+	PhaseNone     Phase = ""
+	PhaseCreating Phase = "Creating"
+	PhaseFailed   Phase = "Failed"
+	PhaseScale    Phase = "Scaling"
+)

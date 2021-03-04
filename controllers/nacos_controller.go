@@ -19,15 +19,14 @@ package controllers
 import (
 	"context"
 	"reflect"
-
-	corev1 "k8s.io/api/core/v1"
+	"time"
 
 	"harmonycloud.cn/nacos-operator/pkg/service/operator"
 
 	"github.com/go-logr/logr"
+	v1 "k8s.io/api/apps/v1"
 	k8sErrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/klog"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
@@ -62,47 +61,75 @@ func (r *NacosReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 		return reconcile.Result{}, err
 	}
 
+	// 工作逻辑入口 , 引发了painc，返回默认false，重新插入队列,5秒继续执行
+	result := r.ReconcileWork(instance)
+	if result == false {
+		return reconcile.Result{
+			Requeue:      !result,
+			RequeueAfter: time.Second * 5}, nil
+	} else {
+		return reconcile.Result{}, nil
+	}
+
+}
+
+func (r *NacosReconciler) ReconcileWork(instance *harmonycloudcnv1alpha1.Nacos) bool {
 	// 处理全局异常处理中的异常
 	defer func() {
 		if err := recover(); err != nil {
-			r.Log.Error(err.(error), "error")
+			r.Log.Error(err.(error), "unknow error")
 		}
 	}()
 
 	// 全局处理异常
 	defer func() {
 		if err := recover(); err != nil {
-			r.globalExceptHandle(err)
+			// 可处理的异常
+			r.globalExceptHandle(err, instance)
 		}
 	}()
 
 	for _, fun := range []reconcileFun{
 		// 保证资源能够创建
 		r.OperaterClient.MakeEnsure,
-		// 检查并修复
+		// 检查并保障
 		r.OperaterClient.CheckAndMakeHeal,
 		// 保存状态
 		r.OperaterClient.UpdateStatus,
 	} {
 		fun(instance)
 	}
+	return true
+}
 
-	return ctrl.Result{}, nil
+func filterByLabel(label map[string]string) bool {
+	v := label["middleware"]
+	if v != "nacos" {
+		return false
+	} else {
+		return true
+	}
 }
 
 func (r *NacosReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&harmonycloudcnv1alpha1.Nacos{}).
-		Owns(&corev1.Pod{}).
+		Owns(&v1.StatefulSet{}).
 		Complete(r)
 }
 
 // 全局异常处理
-func (r *NacosReconciler) globalExceptHandle(err interface{}) {
+func (r *NacosReconciler) globalExceptHandle(err interface{}, instance *harmonycloudcnv1alpha1.Nacos) {
 	if reflect.TypeOf(err) == reflect.TypeOf(myErrors.NewErrMsg("")) {
 		myerr := err.(*myErrors.Err)
-		klog.Warningf("painc msg[%s] code[%d]", myerr.Msg, myerr.Code)
+		r.Log.V(0).Info("painc", "code", myerr.Code, "msg", myerr.Msg)
+		switch myerr.Code {
+		//TODO
+		}
+		// 记录异常
+		r.OperaterClient.StatusClient.UpdateExceptionStatus(instance, myerr)
 	} else {
-		r.Log.Error(err.(error), "error")
+		// 未知的错误，把堆栈打印出来
+		r.Log.Error(err.(error), "unknow error")
 	}
 }
