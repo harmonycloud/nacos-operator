@@ -42,7 +42,7 @@ func (c *CheckClient) CheckKind(nacos *harmonycloudcnv1alpha1.Nacos) []corev1.Po
 	// 检查正常的pod数量，根据实际情况。如果单实例，必须要有1个;集群要1/2以上
 	pods, err := c.k8sService.GetStatefulSetReadPod(nacos.Namespace, nacos.Name)
 	if len(pods) < (int(*nacos.Spec.Replicas)+1)/2 {
-		panic(myErrors.New(myErrors.CODE_ERR_UNKNOW, "The number of ready pods is too small"))
+		panic(myErrors.New(myErrors.CODE_ERR_UNKNOW, "The number of ready pods is too less"))
 	} else if len(pods) != int(*nacos.Spec.Replicas) {
 		c.logger.V(0).Info("pod num is not right")
 	}

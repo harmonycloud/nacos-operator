@@ -129,6 +129,7 @@ bundle-build:
 demo:
 ifeq ($(clear),true)
 	kubectl delete -f config/samples/harmonycloud.cn_v1alpha1_nacos.yaml
+	kubectl delete pod -l app=nacos --grace-period=0 --force
 else
 ifeq ($(type),cluster)
 	echo "cluster mode"

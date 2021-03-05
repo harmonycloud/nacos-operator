@@ -8,6 +8,7 @@ spec:
   image: 10.1.11.100/middleware/nacose:1.4.1
   replicas: 3
   config: |
+    nacos.naming.data.warmup=false
     spring.datasource.platform=mysql
     db.num=1
     db.url.0=jdbc:mysql://mysql:3306/nacos?characterEncoding=utf8&connectTimeout=1000&socketTimeout=3000&autoReconnect=true

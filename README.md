@@ -114,4 +114,9 @@ make demo clear=true
 
 
 ## FAQ
-
+1. 最后一个实例无法ready 
+   
+需要设置以下设置
+```
+nacos.naming.data.warmup=false
+```
