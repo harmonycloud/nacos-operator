@@ -70,7 +70,7 @@ func (e *KindClient) generateName(nacos *harmonycloudcnv1alpha1.Nacos) string {
 }
 
 func (e *KindClient) ValidationField(nacos *harmonycloudcnv1alpha1.Nacos) {
-
+	//todo
 }
 
 func (e *KindClient) EnsureStatefulsetCluster(nacos *harmonycloudcnv1alpha1.Nacos) {
@@ -101,8 +101,10 @@ func (e *KindClient) EnsureHeadlessServiceCluster(nacos *harmonycloudcnv1alpha1.
 }
 
 func (e *KindClient) EnsureConfigmap(nacos *harmonycloudcnv1alpha1.Nacos) {
-	cm := e.buildConfigMap(nacos)
-	myErrors.EnsureNormal(e.k8sService.CreateOrUpdateConfigMap(nacos.Namespace, cm))
+	if nacos.Spec.Config != "" {
+		cm := e.buildConfigMap(nacos)
+		myErrors.EnsureNormal(e.k8sService.CreateOrUpdateConfigMap(nacos.Namespace, cm))
+	}
 }
 
 func (e *KindClient) buildService(nacos *harmonycloudcnv1alpha1.Nacos) *v1.Service {
@@ -141,10 +143,10 @@ func (e *KindClient) buildStatefulset(nacos *harmonycloudcnv1alpha1.Nacos) *appv
 	labels = e.MergeLabels(nacos.Labels, labels)
 
 	env := []v1.EnvVar{
-		//v1.EnvVar{
-		//	Name:  "PREFER_HOST_MODE",
-		//	Value: "hostname",
-		//},
+		{
+			Name:  "PREFER_HOST_MODE",
+			Value: "hostname",
+		},
 	}
 	// 启动内置数据库
 	if nacos.Spec.EnableEmbedded {
@@ -211,13 +213,6 @@ func (e *KindClient) buildStatefulset(nacos *harmonycloudcnv1alpha1.Nacos) *appv
 									Protocol:      "TCP",
 								},
 							},
-							VolumeMounts: []v1.VolumeMount{
-								{
-									Name:      "config",
-									MountPath: "/home/nacos/conf/application.properties",
-									SubPath:   "application.properties",
-								},
-							},
 							Env: env,
 						},
 					},
@@ -235,6 +230,29 @@ func (e *KindClient) buildStatefulset(nacos *harmonycloudcnv1alpha1.Nacos) *appv
 		ss.Spec.Template.Spec.Containers[0].VolumeMounts = append(ss.Spec.Template.Spec.Containers[0].VolumeMounts, localVolum)
 	}
 
+	if nacos.Spec.Config != "" {
+		ss.Spec.Template.Spec.Volumes = []v1.Volume{{
+			Name: "config",
+			VolumeSource: v1.VolumeSource{
+				ConfigMap: &v1.ConfigMapVolumeSource{
+					LocalObjectReference: v1.LocalObjectReference{Name: nacos.Name},
+					Items: []v1.KeyToPath{
+						{
+							Key:  "application.properties",
+							Path: "application.properties",
+						},
+					},
+				},
+			},
+		}}
+		ss.Spec.Template.Spec.Containers[0].VolumeMounts = []v1.VolumeMount{
+			{
+				Name:      "config",
+				MountPath: "/home/nacos/conf/application.properties",
+				SubPath:   "application.properties",
+			},
+		}
+	}
 	myErrors.EnsureNormal(controllerutil.SetControllerReference(nacos, ss, e.scheme))
 	return ss
 }
@@ -262,8 +280,9 @@ func (e *KindClient) buildStatefulsetCluster(nacos *harmonycloudcnv1alpha1.Nacos
 	ss.Spec.ServiceName = nacos.Name
 	serivce := ""
 	for i := 0; i < int(*nacos.Spec.Replicas); i++ {
-		serivce = fmt.Sprintf("%v%v-%d.%v:%v ", serivce, e.generateName(nacos), i, e.generateName(nacos), NACOS_PORT)
+		serivce = fmt.Sprintf("%v%v-%d.%v.%v.%v:%v ", serivce, e.generateName(nacos), i, e.generateName(nacos), nacos.Namespace, "svc.cluster.local", NACOS_PORT)
 	}
+	serivce = serivce[0 : len(serivce)-1]
 	env := []v1.EnvVar{
 		{
 			Name:  "NACOS_SERVERS",

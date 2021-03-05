@@ -57,6 +57,8 @@ type NacosStatus struct {
 	Event []Event `json:"event,omitempty" protobuf:"bytes,4,opt,name=event"`
 	// 运行状态，主要根据这个字段用来判断是否正常
 	Phase Phase `json:"phase,omitempty"`
+
+	Version string `json:"version,omitempty"`
 }
 
 // +kubebuilder:object:root=true
@@ -95,10 +97,10 @@ type Condition struct {
 	Status string `json:"status" protobuf:"bytes,2,opt,name=status,casttype=ConditionStatus"`
 	// Last time we probed the condition.
 	// +optional
-	LastProbeTime metav1.Time `json:"lastProbeTime,omitempty" protobuf:"bytes,3,opt,name=lastProbeTime"`
+	//LastProbeTime metav1.Time `json:"lastProbeTime,omitempty" protobuf:"bytes,3,opt,name=lastProbeTime"`
 	// Last time the condition transitioned from one status to another.
 	// +optional
-	LastTransitionTime metav1.Time `json:"lastTransitionTime,omitempty" protobuf:"bytes,4,opt,name=lastTransitionTime"`
+	//LastTransitionTime metav1.Time `json:"lastTransitionTime,omitempty" protobuf:"bytes,4,opt,name=lastTransitionTime"`
 	// Unique, one-word, CamelCase reason for the condition's last transition.
 	// +optional
 	Reason string `json:"reason,omitempty" protobuf:"bytes,5,opt,name=reason"`
@@ -110,18 +112,20 @@ type Condition struct {
 
 	HostIP string `json:"hostIP,omitempty" protobuf:"bytes,4,opt,name=hostIP"`
 
+	PodName string `json:"podName,omitempty" protobuf:"bytes,4,opt,name=nodeName"`
+
 	NodeName string `json:"nodeName,omitempty" protobuf:"bytes,4,opt,name=nodeName"`
 }
 
 // 事件
 type Event struct {
-	Status string `json:"status"`
+	Status bool `json:"status"`
 
 	// 最早出现时间
 	FirstAppearTime metav1.Time `json:"firstAppearTime,omitempty" protobuf:"bytes,3,opt,name=firstAppearTime"`
 
 	// 更新事件
-	LastTransitionTime metav1.Time `json:"lastTransitionTime ,omitempty" protobuf:"bytes,3,opt,name=lastTransitionTime"`
+	LastTransitionTime metav1.Time `json:"lastTransitionTime,omitempty" protobuf:"bytes,3,opt,name=lastTransitionTime"`
 
 	// 时间描述
 	Message string `json:"message,omitempty" protobuf:"bytes,4,opt,name=message"`

@@ -21,6 +21,12 @@ func EnsureNormal(err error) {
 	}
 }
 
+func EnsureEqual(i1 interface{}, i2 interface{}, code int, msg ...interface{}) {
+	if i1 != i2 {
+		panic(New(code, "msg: %v, %v is not equal %v", msg, i1, i2))
+	}
+}
+
 func EnsureNormalMsgf(err error, format string, a ...interface{}) {
 	if err != nil {
 		panic(err)
@@ -51,8 +57,8 @@ func NewErrMsg(err string) *Err {
 	}
 }
 
-func NewErrfMsgf(format string, a []interface{}) *Err {
-	msg := fmt.Sprintf(format, a)
+func NewErrfMsgf(format string, a ...interface{}) *Err {
+	msg := fmt.Sprintf(format, a...)
 	if len(a) == 0 {
 		msg = fmt.Sprint(format, a)
 	}

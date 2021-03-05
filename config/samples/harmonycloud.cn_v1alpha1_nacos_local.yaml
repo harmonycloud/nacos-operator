@@ -1,7 +1,7 @@
 apiVersion: harmonycloud.cn.harmonycloud.cn/v1alpha1
 kind: Nacos
 metadata:
-  name: nacos-standalone
+  name: nacos
 spec:
   # standalone/cluster
   type: standalone

@@ -66,7 +66,7 @@ func (r *NacosReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 	if result == false {
 		return reconcile.Result{
 			Requeue:      !result,
-			RequeueAfter: time.Second * 5}, nil
+			RequeueAfter: time.Second * 15}, nil
 	} else {
 		return reconcile.Result{}, nil
 	}

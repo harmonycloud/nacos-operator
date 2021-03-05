@@ -1,6 +1,7 @@
 package nacosClient
 
 import (
+	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"log"
@@ -15,16 +16,13 @@ type NacosClient struct {
 	httpClient http.Client
 }
 
-type NacosClusterNodes struct {
-	Code    int    `json:"code"`
-	Message string `json:"message"`
-	Data    []struct {
+type ServersInfo struct {
+	Servers []struct {
 		IP         string `json:"ip"`
 		Port       int    `json:"port"`
 		State      string `json:"state"`
 		ExtendInfo struct {
-			AdWeight        string `json:"adWeight"`
-			LastRefreshTime int64  `json:"lastRefreshTime"`
+			LastRefreshTime int64 `json:"lastRefreshTime"`
 			RaftMetaData    struct {
 				MetaDataMap struct {
 					NamingPersistentService struct {
@@ -35,27 +33,30 @@ type NacosClusterNodes struct {
 				} `json:"metaDataMap"`
 			} `json:"raftMetaData"`
 			RaftPort string `json:"raftPort"`
-			Site     string `json:"site"`
 			Version  string `json:"version"`
-			// bug 有些是int，有些是string
-			//Weight   string `json:"weight"`
 		} `json:"extendInfo"`
 		Address       string `json:"address"`
 		FailAccessCnt int    `json:"failAccessCnt"`
-	} `json:"data"`
+	} `json:"servers"`
 }
 
-func (c *NacosClient) GetClusterNodes(ip string) (string, error) {
-	resp, err := c.httpClient.Get(fmt.Sprintf("http://%s:8848/nacos/v1/core/cluster/nodes", ip))
+func (c *NacosClient) GetClusterNodes(ip string) (ServersInfo, error) {
+	servers := ServersInfo{}
+	resp, err := c.httpClient.Get(fmt.Sprintf("http://%s:8848/nacos/v1/ns/operator/servers", ip))
 	if err != nil {
-		return "", err
+		return servers, err
 	}
 	defer resp.Body.Close()
 	body, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
-		return "", err
+		return servers, err
 	}
-	return string(body), nil
+
+	err = json.Unmarshal(body, &servers)
+	if err != nil {
+		return servers, err
+	}
+	return servers, nil
 }
 
 //func (c *CheckClient) getClusterNodesStaus(ip string) (bool, error) {

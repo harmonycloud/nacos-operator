@@ -1,7 +1,7 @@
 package operator
 
 import (
-	"encoding/json"
+	"strings"
 
 	corev1 "k8s.io/api/core/v1"
 
@@ -29,12 +29,12 @@ func NewCheckClient(logger log.Logger, k8sService k8s.Services) *CheckClient {
 	}
 }
 
-func (c CheckClient) CheckKind(nacos *harmonycloudcnv1alpha1.Nacos) []corev1.Pod {
-	// ss数量和cr副本数匹配
+func (c *CheckClient) CheckKind(nacos *harmonycloudcnv1alpha1.Nacos) []corev1.Pod {
+	// 保证ss数量和cr副本数匹配
 	ss, err := c.k8sService.GetStatefulSet(nacos.Namespace, nacos.Name)
 	myErrors.EnsureNormal(err)
 
-	if ss.Spec.Replicas != nacos.Spec.Replicas {
+	if *ss.Spec.Replicas != *nacos.Spec.Replicas {
 		panic(myErrors.New(myErrors.CODE_ERR_UNKNOW, "cr replicas is not equal ss replicas"))
 
 	}
@@ -49,16 +49,47 @@ func (c CheckClient) CheckKind(nacos *harmonycloudcnv1alpha1.Nacos) []corev1.Pod
 	return pods
 }
 
-func (c CheckClient) CheckNacos(pods []corev1.Pod) {
+func (c *CheckClient) CheckNacos(nacos *harmonycloudcnv1alpha1.Nacos, pods []corev1.Pod) {
+	leader := ""
+	nacos.Status.Conditions = []harmonycloudcnv1alpha1.Condition{}
 	// 检查nacos是否访问通
 	for _, pod := range pods {
-		str, err := c.nacosClient.GetClusterNodes(pod.Status.PodIP)
+		servers, err := c.nacosClient.GetClusterNodes(pod.Status.PodIP)
 		myErrors.EnsureNormal(err)
-		node := nacosClient.NacosClusterNodes{}
-		myErrors.EnsureNormal(json.Unmarshal([]byte(str), &node))
-		if node.Code != 200 {
-			panic(myErrors.New(myErrors.CODE_ERR_UNKNOW, myErrors.MSG_NACOS_UNREACH, pod.Status.PodIP))
+		// 确保cr中实例个数和server数量相同
+		myErrors.EnsureEqual(len(servers.Servers), int(*nacos.Spec.Replicas), myErrors.CODE_CLUSTER_FAILE, "server num is not equal")
+		for _, svc := range servers.Servers {
+			myErrors.EnsureEqual(svc.State, "UP", myErrors.CODE_CLUSTER_FAILE, "node is not up")
+			if leader != "" {
+				// 确保每个节点leader相同
+				myErrors.EnsureEqual(leader, svc.ExtendInfo.RaftMetaData.MetaDataMap.NamingPersistentService.Leader,
+					myErrors.CODE_CLUSTER_FAILE, "leader not equal")
+			} else {
+				leader = svc.ExtendInfo.RaftMetaData.MetaDataMap.NamingPersistentService.Leader
+			}
+			nacos.Status.Version = svc.ExtendInfo.Version
 		}
+
+		condition := harmonycloudcnv1alpha1.Condition{
+			Status:   "true",
+			Instance: pod.Status.PodIP,
+			PodName:  pod.Name,
+			NodeName: pod.Spec.NodeName,
+		}
+		leaderSplit := []string{}
+		if strings.Index(leader, ".") > 0 {
+			leaderSplit = strings.Split(leader, ".")
+		} else {
+			leaderSplit = strings.Split(leader, ":")
+		}
+		if len(leaderSplit) > 0 {
+			if leaderSplit[0] == pod.Name {
+				condition.Type = "leader"
+			} else {
+				condition.Type = "Followers"
+			}
+		}
+		nacos.Status.Conditions = append(nacos.Status.Conditions, condition)
 	}
-	//TODO
+
 }

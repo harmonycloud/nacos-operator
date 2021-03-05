@@ -127,7 +127,18 @@ bundle-build:
 
 # 后面的就是自己实现
 demo:
+ifeq ($(clear),true)
+	kubectl delete -f config/samples/harmonycloud.cn_v1alpha1_nacos.yaml
+else
+ifeq ($(type),cluster)
+	echo "cluster mode"
+	kubectl apply -f config/samples/harmonycloud.cn_v1alpha1_nacos_cluster.yaml
+else
+	echo "standalone mode"
 	kubectl apply -f config/samples/harmonycloud.cn_v1alpha1_nacos.yaml
+endif
+endif
+
 
 image_operator: docker-build docker-push
 

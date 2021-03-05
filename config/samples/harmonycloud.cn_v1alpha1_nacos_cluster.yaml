@@ -4,9 +4,8 @@ metadata:
   name: nacos
 spec:
   # standalone/cluster
-  type: standalone
-  image: 10.1.11.100/middleware/nacose:1.4.0
-  replicas: 1
-  # 开启本地数据库
+  type: cluster
+  image: 10.1.11.100/middleware/nacose:1.4.1
+  replicas: 3
   enableEmbedded: true
 

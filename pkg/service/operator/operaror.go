@@ -11,6 +11,10 @@ import (
 )
 
 type IOperatorClient interface {
+	IKindClient
+	ICheckClient
+	IHealClient
+	IStatusClient
 }
 
 type OperatorClient struct {
@@ -69,7 +73,7 @@ func (c *OperatorClient) CheckAndMakeHeal(nacos *harmonycloudcnv1alpha1.Nacos) {
 	// 检查kind
 	pods := c.CheckClient.CheckKind(nacos)
 	// 检查nacos
-	c.CheckClient.CheckNacos(pods)
+	c.CheckClient.CheckNacos(nacos, pods)
 }
 
 func (c *OperatorClient) UpdateStatus(nacos *harmonycloudcnv1alpha1.Nacos) {
