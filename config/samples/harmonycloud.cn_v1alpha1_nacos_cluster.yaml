@@ -8,5 +8,5 @@ spec:
   image: 10.1.11.100/middleware/nacose:1.4.1
   replicas: 3
   enableEmbedded: true
-  config: |
-    nacos.naming.data.warmup=false
+#  config: |
+#    nacos.naming.data.warmup=false

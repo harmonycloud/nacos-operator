@@ -111,12 +111,21 @@ status:
 ```
 make demo clear=true
 ```
+## 配置
+### 常用配置
+- 启动类型 spec.type 支持standalone和cluster模式
+- 是否开启本地数据库 spec.enableEmbedded 设置为true则开启，需要另外设置volumeClaimTemplates，不然数据重启后丢失, 参考harmonycloud.cn_v1alpha1_nacos_local.yaml
+- 使用mysql: 配置spec.config, 参考config/samples/harmonycloud.cn_v1alpha1_nacos_mysql.yaml
 
+### 自定义配置
+支持自定义配置文件，spec.config 会直接映射成application.properties文件
 
 ## FAQ
-1. 最后一个实例无法ready 
-   
-需要设置以下设置
-```
-nacos.naming.data.warmup=false
-```
+1. 设置readiness和liveiness集群出问题
+
+    最后一个实例无法ready，搜索了下issus，发现需要以下设置
+    ```
+    nacos.naming.data.warmup=false
+    ```
+    
+    设置了以后发现，pod能够running，但是集群状态始终无法同步，不同节点出现不同leader；所以暂时不开启readiness和liveiness

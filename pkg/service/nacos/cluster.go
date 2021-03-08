@@ -54,6 +54,7 @@ func (c *NacosClient) GetClusterNodes(ip string) (ServersInfo, error) {
 
 	err = json.Unmarshal(body, &servers)
 	if err != nil {
+		fmt.Printf("%s\n", body)
 		return servers, err
 	}
 	return servers, nil

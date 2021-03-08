@@ -3,8 +3,6 @@ package operator
 import (
 	"fmt"
 
-	"k8s.io/apimachinery/pkg/util/intstr"
-
 	"k8s.io/apimachinery/pkg/runtime"
 
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
@@ -234,28 +232,28 @@ func (e *KindClient) buildStatefulset(nacos *harmonycloudcnv1alpha1.Nacos) *appv
 		ss.Spec.Template.Spec.Containers[0].VolumeMounts = append(ss.Spec.Template.Spec.Containers[0].VolumeMounts, localVolum)
 	}
 
-	probe := &v1.Probe{
-		InitialDelaySeconds: 10,
-		PeriodSeconds:       5,
-		TimeoutSeconds:      4,
-		FailureThreshold:    5,
-		Handler: v1.Handler{
-			HTTPGet: &v1.HTTPGetAction{
-				Port: intstr.IntOrString{IntVal: NACOS_PORT},
-				Path: "/nacos/actuator/health/",
-			},
-			//TCPSocket: &v1.TCPSocketAction{
-			//	Port: intstr.IntOrString{IntVal: NACOS_PORT},
-			//},
-		},
-	}
+	//probe := &v1.Probe{
+	//	InitialDelaySeconds: 10,
+	//	PeriodSeconds:       5,
+	//	TimeoutSeconds:      4,
+	//	FailureThreshold:    5,
+	//	Handler: v1.Handler{
+	//		HTTPGet: &v1.HTTPGetAction{
+	//			Port: intstr.IntOrString{IntVal: NACOS_PORT},
+	//			Path: "/nacos/actuator/health/",
+	//		},
+	//		//TCPSocket: &v1.TCPSocketAction{
+	//		//	Port: intstr.IntOrString{IntVal: NACOS_PORT},
+	//		//},
+	//	},
+	//}
 
-	if nacos.Spec.LivenessProbe == nil {
-		ss.Spec.Template.Spec.Containers[0].LivenessProbe = probe
-	}
-	if nacos.Spec.ReadinessProbe == nil {
-		ss.Spec.Template.Spec.Containers[0].ReadinessProbe = probe
-	}
+	//if nacos.Spec.LivenessProbe == nil {
+	//	ss.Spec.Template.Spec.Containers[0].LivenessProbe = probe
+	//}
+	//if nacos.Spec.ReadinessProbe == nil {
+	//	ss.Spec.Template.Spec.Containers[0].ReadinessProbe = probe
+	//}
 
 	if nacos.Spec.Config != "" {
 		ss.Spec.Template.Spec.Volumes = []v1.Volume{{
