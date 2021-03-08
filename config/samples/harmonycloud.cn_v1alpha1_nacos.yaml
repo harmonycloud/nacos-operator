@@ -1,4 +1,4 @@
-apiVersion: harmonycloud.cn.harmonycloud.cn/v1alpha1
+apiVersion: harmonycloud.cn/v1alpha1
 kind: Nacos
 metadata:
   name: nacos

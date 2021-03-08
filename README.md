@@ -13,7 +13,7 @@ make run
 ```
 # 查看cr文件
 cat config/samples/harmonycloud.cn_v1alpha1_nacos.yaml
-apiVersion: harmonycloud.cn.harmonycloud.cn/v1alpha1
+apiVersion: harmonycloud.cn/v1alpha1
 kind: Nacos
 metadata:
   name: nacos
@@ -52,7 +52,7 @@ make demo clear=true
 ```
 cat config/samples/harmonycloud.cn_v1alpha1_nacos_cluster.yaml
 
-apiVersion: harmonycloud.cn.harmonycloud.cn/v1alpha1
+apiVersion: harmonycloud.cn/v1alpha1
 kind: Nacos
 metadata:
   name: nacos

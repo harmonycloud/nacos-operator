@@ -44,8 +44,8 @@ type NacosReconciler struct {
 	OperaterClient *operator.OperatorClient
 }
 
-// +kubebuilder:rbac:groups=harmonycloud.cn.harmonycloud.cn,resources=nacos,verbs=get;list;watch;create;update;patch;delete
-// +kubebuilder:rbac:groups=harmonycloud.cn.harmonycloud.cn,resources=nacos/status,verbs=get;update;patch
+// +kubebuilder:rbac:groups=harmonycloud.cn,resources=nacos,verbs=get;list;watch;create;update;patch;delete
+// +kubebuilder:rbac:groups=harmonycloud.cn,resources=nacos/status,verbs=get;update;patch
 type reconcileFun func(nacos *harmonycloudcnv1alpha1.Nacos)
 
 func (r *NacosReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
