@@ -1,18 +1,18 @@
 # nacos-operator
 
-nacos-operator, quickly deploy and build nacos on K8s
-[中文文档](./README-CN.md)
-## Quick start
+nacos-operator，快速在K8s上面部署构建nacos
+
+## 快速开始
 ```
-# install crd
+# 安装crd
 make install
 
-# run operator
+# 运行operator
 make run
 ```
-### Start single instance, standalone mode
+### 启动单实例，standalone模式
 ```
-# View cr file
+# 查看cr文件
 cat config/samples/harmonycloud.cn_v1alpha1_nacos.yaml
 apiVersion: harmonycloud.cn/v1alpha1
 kind: Nacos
@@ -22,13 +22,13 @@ spec:
   type: standalone
   image: nacos/nacos-server:1.4.1
   replicas: 1
-  # enable the local database
+  # 开启本地数据库
   enableEmbedded: true
 
-# Install demo standalone mode
+# 安装demo standalone模式
 make demo type=standalone
 
-# View nacos instance
+# 查看nacos实例
 kubectl get pod  -o wide
 NAME                 READY   STATUS    RESTARTS   AGE    IP               NODE        NOMINATED NODE   READINESS GATES
 nacos-0   1/1     Running   0          84s    10.168.247.38    slave-100   <none>           <none>
@@ -45,11 +45,11 @@ status
   phase: Running
   version: 1.4.0
 ```
-clear
+清除
 ```
 make demo clear=true
 ```
-### Start cluster mode
+### 启动集群模式
 ```
 cat config/samples/harmonycloud.cn_v1alpha1_nacos_cluster.yaml
 
@@ -63,7 +63,7 @@ spec:
   replicas: 3
   enableEmbedded: true
   
-# Create nacos cluster
+# 创建nacos集群
 make demo type=cluster
 
 
@@ -74,7 +74,7 @@ nacos-0          1/1     Running   0          111s   10.168.247.39    slave-100 
 nacos-1          1/1     Running   0          109s   10.168.152.186   master-212   <none>           <none>
 nacos-2          1/1     Running   0          108s   10.168.207.209   slave-214    <none>           <none>
 
-# Wait for the cluster components, check the cr details again
+# 等待集群组件，再次cr详情
 kubectl get nacos nacos -o yaml -w
 ...
 status:
@@ -108,18 +108,18 @@ status:
   version: 1.4.1
 ```
 
-clear
+清除
 ```
 make demo clear=true
 ```
-## Configuration
-### Set mode
-Currently supports standalone and cluster modes
+## 配置
+### 设置模式
+目前支持standalone和cluster模式
 
-By configuring spec.type as standalone/cluster
+通过配置spec.type 为 standalone/cluster
 
-### Database configuration
-embedded database
+### 数据库配置
+embedded数据库
 ```
 apiVersion: harmonycloud.cn/v1alpha1
 kind: Nacos
@@ -128,7 +128,7 @@ metadata:
 spec:
   ...
   enableEmbedded: true
-  # If you need to persist data, you need to configure volumeClaimTemplates, otherwise the pod restarts and the data will be lost
+  # 如果需要持久化数据，需要配置volumeClaimTemplates，否则pod重启数据丢失
   volumeClaimTemplates:
   - metadata:
       name: db
@@ -140,7 +140,7 @@ spec:
           storage: 100Mi
 ```
 
-mysql database
+mysql数据库
 ```
 apiVersion: harmonycloud.cn/v1alpha1
 kind: Nacos
@@ -155,15 +155,15 @@ spec:
     db.user=root
     db.password=123456
 ```
-### Custom configuration
-Support custom configuration file, spec.config will be directly mapped to application.properties file
+### 自定义配置
+支持自定义配置文件，spec.config 会直接映射成application.properties文件
 
 ## FAQ
-1. Problem setting readiness and liveiness cluster
+1. 设置readiness和liveiness集群出问题
 
-   The last instance cannot be ready. I searched for issus and found that the following settings are required
+    最后一个实例无法ready，搜索了下issus，发现需要以下设置
     ```
     nacos.naming.data.warmup=false
     ```
-
-   After setting it up, it is found that the pod can run, but the cluster status cannot always be synchronized, and different nodes have different leaders; therefore, readiness and liveiness are not enabled for the time being
+    
+    设置了以后发现，pod能够running，但是集群状态始终无法同步，不同节点出现不同leader；所以暂时不开启readiness和liveiness

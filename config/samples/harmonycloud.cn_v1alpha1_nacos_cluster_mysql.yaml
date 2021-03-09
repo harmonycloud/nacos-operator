@@ -5,7 +5,7 @@ metadata:
 spec:
   # standalone/cluster
   type: cluster
-  image: 10.1.11.100/middleware/nacose:1.4.1
+  image: nacos/nacos-server:1.4.1
   replicas: 3
   config: |
     spring.datasource.platform=mysql

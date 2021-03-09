@@ -5,7 +5,7 @@ metadata:
 spec:
   # standalone/cluster
   type: standalone
-  image: 10.1.11.100/middleware/nacose:1.4.0
+  image: nacos/nacos-server:1.4.1
   replicas: 1
   enableEmbedded: true
   volumeClaimTemplates:
