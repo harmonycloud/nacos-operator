@@ -1,6 +1,7 @@
 # nacos-operator
 
-nacos-operator, quickly deploy and build nacos on K8s
+nacos-operator, quickly deploy and build nacos on K8s.
+
 [中文文档](./README-CN.md)
 ## Quick start
 ```

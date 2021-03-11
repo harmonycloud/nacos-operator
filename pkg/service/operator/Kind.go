@@ -69,6 +69,10 @@ func (e *KindClient) generateName(nacos *harmonycloudcnv1alpha1.Nacos) string {
 	return nacos.Name
 }
 
+func (e *KindClient) generateHeadlessSvcName(nacos *harmonycloudcnv1alpha1.Nacos) string {
+	return fmt.Sprintf("%s-headless", nacos.Name)
+}
+
 func (e *KindClient) ValidationField(nacos *harmonycloudcnv1alpha1.Nacos) {
 	//todo
 }
@@ -103,7 +107,7 @@ func (e *KindClient) EnsureHeadlessServiceCluster(nacos *harmonycloudcnv1alpha1.
 func (e *KindClient) EnsureConfigmap(nacos *harmonycloudcnv1alpha1.Nacos) {
 	if nacos.Spec.Config != "" {
 		cm := e.buildConfigMap(nacos)
-		myErrors.EnsureNormal(e.k8sService.CreateOrUpdateConfigMap(nacos.Namespace, cm))
+		myErrors.EnsureNormal(e.k8sService.CreateIfNotExistsConfigMap(nacos.Namespace, cm))
 	}
 }
 
@@ -112,7 +116,7 @@ func (e *KindClient) buildService(nacos *harmonycloudcnv1alpha1.Nacos) *v1.Servi
 	labels = e.MergeLabels(nacos.Labels, labels)
 	svc := &v1.Service{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:        e.generateName(nacos),
+			Name:        e.generateHeadlessSvcName(nacos),
 			Namespace:   nacos.Namespace,
 			Labels:      labels,
 			Annotations: nacos.Annotations,
@@ -182,21 +186,7 @@ func (e *KindClient) buildStatefulset(nacos *harmonycloudcnv1alpha1.Nacos) *appv
 					Labels: labels,
 				},
 				Spec: v1.PodSpec{
-					Volumes: []v1.Volume{{
-						Name: "config",
-						VolumeSource: v1.VolumeSource{
-							ConfigMap: &v1.ConfigMapVolumeSource{
-								LocalObjectReference: v1.LocalObjectReference{Name: nacos.Name},
-								Items: []v1.KeyToPath{
-									{
-										Key:  "application.properties",
-										Path: "application.properties",
-									},
-								},
-							},
-						},
-					},
-					},
+					Volumes: []v1.Volume{},
 					Containers: []v1.Container{
 						{
 							Name:  nacos.Name,
@@ -216,6 +206,7 @@ func (e *KindClient) buildStatefulset(nacos *harmonycloudcnv1alpha1.Nacos) *appv
 							Env:            env,
 							LivenessProbe:  nacos.Spec.LivenessProbe,
 							ReadinessProbe: nacos.Spec.ReadinessProbe,
+							VolumeMounts:   []v1.VolumeMount{},
 						},
 					},
 				},
@@ -256,7 +247,7 @@ func (e *KindClient) buildStatefulset(nacos *harmonycloudcnv1alpha1.Nacos) *appv
 	//}
 
 	if nacos.Spec.Config != "" {
-		ss.Spec.Template.Spec.Volumes = []v1.Volume{{
+		ss.Spec.Template.Spec.Volumes = append(ss.Spec.Template.Spec.Volumes, v1.Volume{
 			Name: "config",
 			VolumeSource: v1.VolumeSource{
 				ConfigMap: &v1.ConfigMapVolumeSource{
@@ -269,14 +260,12 @@ func (e *KindClient) buildStatefulset(nacos *harmonycloudcnv1alpha1.Nacos) *appv
 					},
 				},
 			},
-		}}
-		ss.Spec.Template.Spec.Containers[0].VolumeMounts = []v1.VolumeMount{
-			{
-				Name:      "config",
-				MountPath: "/home/nacos/conf/application.properties",
-				SubPath:   "application.properties",
-			},
-		}
+		})
+		ss.Spec.Template.Spec.Containers[0].VolumeMounts = append(ss.Spec.Template.Spec.Containers[0].VolumeMounts, v1.VolumeMount{
+			Name:      "config",
+			MountPath: "/home/nacos/conf/application.properties",
+			SubPath:   "application.properties",
+		})
 	}
 	myErrors.EnsureNormal(controllerutil.SetControllerReference(nacos, ss, e.scheme))
 	return ss
@@ -288,6 +277,7 @@ func (e *KindClient) buildConfigMap(nacos *harmonycloudcnv1alpha1.Nacos) *v1.Con
 	data := make(map[string]string)
 
 	data["application.properties"] = nacos.Spec.Config
+
 	cm := v1.ConfigMap{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:        e.generateName(nacos),
@@ -301,11 +291,77 @@ func (e *KindClient) buildConfigMap(nacos *harmonycloudcnv1alpha1.Nacos) *v1.Con
 	return &cm
 }
 
+func (e *KindClient) buildDefaultConfigMap(nacos *harmonycloudcnv1alpha1.Nacos) *v1.ConfigMap {
+	labels := e.generateLabels(nacos.Name, NACOS)
+	labels = e.MergeLabels(nacos.Labels, labels)
+	data := make(map[string]string)
+
+	// https://github.com/nacos-group/nacos-docker/blob/master/build/conf/application.properties
+	data["application.properties"] = `# spring
+	server.servlet.contextPath=${SERVER_SERVLET_CONTEXTPATH:/nacos}
+	server.contextPath=/nacos
+	server.port=${NACOS_APPLICATION_PORT:8848}
+	spring.datasource.platform=${SPRING_DATASOURCE_PLATFORM:""}
+	nacos.cmdb.dumpTaskInterval=3600
+	nacos.cmdb.eventTaskInterval=10
+	nacos.cmdb.labelTaskInterval=300
+	nacos.cmdb.loadDataAtStart=false
+	db.num=${MYSQL_DATABASE_NUM:1}
+	db.url.0=jdbc:mysql://${MYSQL_SERVICE_HOST}:${MYSQL_SERVICE_PORT:3306}/${MYSQL_SERVICE_DB_NAME}?${MYSQL_SERVICE_DB_PARAM:characterEncoding=utf8&connectTimeout=1000&socketTimeout=3000&autoReconnect=true}
+	db.url.1=jdbc:mysql://${MYSQL_SERVICE_HOST}:${MYSQL_SERVICE_PORT:3306}/${MYSQL_SERVICE_DB_NAME}?${MYSQL_SERVICE_DB_PARAM:characterEncoding=utf8&connectTimeout=1000&socketTimeout=3000&autoReconnect=true}
+	db.user=${MYSQL_SERVICE_USER}
+	db.password=${MYSQL_SERVICE_PASSWORD}
+	### The auth system to use, currently only 'nacos' is supported:
+	nacos.core.auth.system.type=${NACOS_AUTH_SYSTEM_TYPE:nacos}
+	
+	
+	### The token expiration in seconds:
+	nacos.core.auth.default.token.expire.seconds=${NACOS_AUTH_TOKEN_EXPIRE_SECONDS:18000}
+	
+	### The default token:
+	nacos.core.auth.default.token.secret.key=${NACOS_AUTH_TOKEN:SecretKey012345678901234567890123456789012345678901234567890123456789}
+	
+	### Turn on/off caching of auth information. By turning on this switch, the update of auth information would have a 15 seconds delay.
+	nacos.core.auth.caching.enabled=${NACOS_AUTH_CACHE_ENABLE:false}
+	nacos.core.auth.enable.userAgentAuthWhite=${NACOS_AUTH_USER_AGENT_AUTH_WHITE_ENABLE:false}
+	nacos.core.auth.server.identity.key=${NACOS_AUTH_IDENTITY_KEY:serverIdentity}
+	nacos.core.auth.server.identity.value=${NACOS_AUTH_IDENTITY_VALUE:security}
+	server.tomcat.accesslog.enabled=${TOMCAT_ACCESSLOG_ENABLED:false}
+	server.tomcat.accesslog.pattern=%h %l %u %t "%r" %s %b %D
+	# default current work dir
+	server.tomcat.basedir=
+	## spring security config
+	### turn off security
+	nacos.security.ignore.urls=${NACOS_SECURITY_IGNORE_URLS:/,/error,/**/*.css,/**/*.js,/**/*.html,/**/*.map,/**/*.svg,/**/*.png,/**/*.ico,/console-fe/public/**,/v1/auth/**,/v1/console/health/**,/actuator/**,/v1/console/server/**}
+	# metrics for elastic search
+	management.metrics.export.elastic.enabled=false
+	management.metrics.export.influx.enabled=false
+	
+	nacos.naming.distro.taskDispatchThreadCount=10
+	nacos.naming.distro.taskDispatchPeriod=200
+	nacos.naming.distro.batchSyncKeyCount=1000
+	nacos.naming.distro.initDataRatio=0.9
+	nacos.naming.distro.syncRetryDelay=5000
+	nacos.naming.data.warmup=true`
+
+	cm := v1.ConfigMap{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:        fmt.Sprintf("%s-default", e.generateName(nacos)),
+			Namespace:   nacos.Namespace,
+			Labels:      labels,
+			Annotations: nacos.Annotations,
+		},
+		Data: data,
+	}
+	myErrors.EnsureNormal(controllerutil.SetControllerReference(nacos, &cm, e.scheme))
+	return &cm
+}
+
 func (e *KindClient) buildStatefulsetCluster(nacos *harmonycloudcnv1alpha1.Nacos, ss *appv1.StatefulSet) *appv1.StatefulSet {
-	ss.Spec.ServiceName = nacos.Name
+	ss.Spec.ServiceName = e.generateHeadlessSvcName(nacos)
 	serivce := ""
 	for i := 0; i < int(*nacos.Spec.Replicas); i++ {
-		serivce = fmt.Sprintf("%v%v-%d.%v.%v.%v:%v ", serivce, e.generateName(nacos), i, e.generateName(nacos), nacos.Namespace, "svc.cluster.local", NACOS_PORT)
+		serivce = fmt.Sprintf("%v%v-%d.%v.%v.%v:%v ", serivce, e.generateName(nacos), i, e.generateHeadlessSvcName(nacos), nacos.Namespace, "svc.cluster.local", NACOS_PORT)
 	}
 	serivce = serivce[0 : len(serivce)-1]
 	env := []v1.EnvVar{

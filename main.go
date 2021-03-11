@@ -31,6 +31,9 @@ import (
 	_ "k8s.io/client-go/plugin/pkg/client/auth/gcp"
 	ctrl "sigs.k8s.io/controller-runtime"
 
+	"net/http"
+	_ "net/http/pprof"
+
 	harmonycloudcnv1alpha1 "harmonycloud.cn/nacos-operator/api/v1alpha1"
 	"harmonycloud.cn/nacos-operator/controllers"
 	// +kubebuilder:scaffold:imports
@@ -49,6 +52,10 @@ func init() {
 }
 
 func main() {
+
+	go func() {
+		http.ListenAndServe("0.0.0.0:8090", nil)
+	}()
 	var metricsAddr string
 	var enableLeaderElection bool
 	flag.StringVar(&metricsAddr, "metrics-addr", ":8080", "The address the metric endpoint binds to.")
@@ -71,10 +78,6 @@ func main() {
 		os.Exit(1)
 	}
 	log := ctrl.Log.WithName("controllers").WithName("Nacos")
-	log.V(0).Info("0")
-	log.V(1).Info("1")
-	log.V(2).Info("2")
-	log.V(3).Info("3")
 	clientset, _ := kubernetes.NewForConfig(ctrl.GetConfigOrDie())
 	if err = (&controllers.NacosReconciler{
 		Client:         mgr.GetClient(),
