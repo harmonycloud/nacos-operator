@@ -1,0 +1,37 @@
+type: cluster
+
+replicaCount: 3
+
+image:
+  repository: nacos/nacos-server
+  pullPolicy: IfNotPresent
+  tag: "1.4.1"
+
+
+enableEmbedded: false
+
+imagePullSecrets: []
+nameOverride: ""
+fullnameOverride: ""
+
+config: |
+    spring.datasource.platform=mysql
+    db.num=1
+    db.url.0=jdbc:mysql://mysql:3306/nacos?characterEncoding=utf8&connectTimeout=1000&socketTimeout=3000&autoReconnect=true
+    db.user=root
+    db.password=123456
+
+
+resources: {}
+  # limits:
+  #   cpu: 100m
+  #   memory: 128Mi
+  # requests:
+  #   cpu: 100m
+  #   memory: 128Mi
+
+nodeSelector: {}
+
+tolerations: []
+
+affinity: {}
