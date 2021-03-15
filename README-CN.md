@@ -4,12 +4,10 @@ nacos-operator，快速在K8s上面部署构建nacos
 
 ## 快速开始
 ```
-# 安装crd
-make install
-
-# 运行operator
-make run
+# 直接使用helm方式安装operator
+cd chart/nacos-operator && helm install nacos-operator . && cd ../..
 ```
+
 ### 启动单实例，standalone模式
 ```
 # 查看cr文件
@@ -157,6 +155,16 @@ spec:
 ```
 ### 自定义配置
 支持自定义配置文件，spec.config 会直接映射成application.properties文件
+
+## 开发文档
+```
+# 安装crd
+make install
+
+# 以源码方式运行operator
+# make run
+```
+
 
 ## FAQ
 1. 设置readiness和liveiness集群出问题
