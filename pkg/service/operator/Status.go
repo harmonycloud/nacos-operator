@@ -29,12 +29,17 @@ func NewStatusClient(logger log.Logger, k8sService k8s.Services, client client.C
 }
 
 // 更新状态
-func (c *StatusClient) UpdateStatus(nacos *harmonycloudcnv1alpha1.Nacos) {
+func (c *StatusClient) UpdateStatusRunning(nacos *harmonycloudcnv1alpha1.Nacos) {
 	c.updateLastEvent(nacos, 200, "", true)
 	nacos.Status.Phase = harmonycloudcnv1alpha1.PhaseRunning
 	// TODO
 	myErrors.EnsureNormal(c.client.Status().Update(context.TODO(), nacos))
+}
 
+// 更新状态
+func (c *StatusClient) UpdateStatus(nacos *harmonycloudcnv1alpha1.Nacos) {
+	// TODO
+	myErrors.EnsureNormal(c.client.Status().Update(context.TODO(), nacos))
 }
 
 func (c *StatusClient) UpdateExceptionStatus(nacos *harmonycloudcnv1alpha1.Nacos, err *myErrors.Err) {

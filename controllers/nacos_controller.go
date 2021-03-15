@@ -90,6 +90,7 @@ func (r *NacosReconciler) ReconcileWork(instance *harmonycloudcnv1alpha1.Nacos) 
 	}()
 
 	for _, fun := range []reconcileFun{
+		r.OperaterClient.PreCheck,
 		// 保证资源能够创建
 		r.OperaterClient.MakeEnsure,
 		// 检查并保障
@@ -124,10 +125,16 @@ func (r *NacosReconciler) globalExceptHandle(err interface{}, instance *harmonyc
 		myerr := err.(*myErrors.Err)
 		r.Log.V(0).Info("painc", "code", myerr.Code, "msg", myerr.Msg)
 		switch myerr.Code {
-		//TODO
+		case myErrors.CODE_NORMAL:
+			r.OperaterClient.StatusClient.UpdateStatus(instance)
+			return
 		}
-		// 记录异常
-		r.OperaterClient.StatusClient.UpdateExceptionStatus(instance, myerr)
+
+		// 超时3分钟如果还未成功就显示异常
+		if instance.Status.Phase != harmonycloudcnv1alpha1.PhaseCreating ||
+			instance.CreationTimestamp.Add(time.Minute*3).Before(time.Now()) {
+			r.OperaterClient.StatusClient.UpdateExceptionStatus(instance, myerr)
+		}
 	} else {
 		// 未知的错误，把堆栈打印出来
 		r.Log.Error(err.(error), "unknow error")

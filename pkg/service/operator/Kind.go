@@ -2,6 +2,7 @@ package operator
 
 import (
 	"fmt"
+	"strconv"
 
 	"k8s.io/apimachinery/pkg/runtime"
 
@@ -52,6 +53,10 @@ func (e *KindClient) generateLabels(name string, component string) map[string]st
 	}
 }
 
+func (e *KindClient) generateAnnoation() map[string]string {
+	return map[string]string{}
+}
+
 // 合并cr中的label 和 固定的label
 func (e *KindClient) MergeLabels(allLabels ...map[string]string) map[string]string {
 	res := map[string]string{}
@@ -73,8 +78,35 @@ func (e *KindClient) generateHeadlessSvcName(nacos *harmonycloudcnv1alpha1.Nacos
 	return fmt.Sprintf("%s-headless", nacos.Name)
 }
 
+// CR格式验证
 func (e *KindClient) ValidationField(nacos *harmonycloudcnv1alpha1.Nacos) {
-	//todo
+
+	if nacos.Spec.Type == "" {
+		nacos.Spec.Type = "standalone"
+	}
+
+	// 默认设置内置数据库
+	if nacos.Spec.Database.TypeDatabase == "" {
+		nacos.Spec.Database.TypeDatabase = "embedded"
+	}
+	// mysql设置默认值
+	if nacos.Spec.Database.TypeDatabase == "mysql" {
+		if nacos.Spec.Database.MysqlHost == "" {
+			nacos.Spec.Database.MysqlHost = "127.0.0.1"
+		}
+		if nacos.Spec.Database.MysqlUser == "" {
+			nacos.Spec.Database.MysqlUser = "root"
+		}
+		if nacos.Spec.Database.MysqlDb == "" {
+			nacos.Spec.Database.MysqlDb = "nacos"
+		}
+		if nacos.Spec.Database.MysqlPassword == "" {
+			nacos.Spec.Database.MysqlPassword = "123456"
+		}
+		if nacos.Spec.Database.MysqlPort == "" {
+			nacos.Spec.Database.MysqlPort = "3306"
+		}
+	}
 }
 
 func (e *KindClient) EnsureStatefulsetCluster(nacos *harmonycloudcnv1alpha1.Nacos) {
@@ -114,12 +146,15 @@ func (e *KindClient) EnsureConfigmap(nacos *harmonycloudcnv1alpha1.Nacos) {
 func (e *KindClient) buildService(nacos *harmonycloudcnv1alpha1.Nacos) *v1.Service {
 	labels := e.generateLabels(nacos.Name, NACOS)
 	labels = e.MergeLabels(nacos.Labels, labels)
+
+	annotations := e.MergeLabels(e.generateAnnoation(), nacos.Annotations)
+
 	svc := &v1.Service{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:        e.generateHeadlessSvcName(nacos),
 			Namespace:   nacos.Namespace,
 			Labels:      labels,
-			Annotations: nacos.Annotations,
+			Annotations: annotations,
 		},
 		Spec: v1.ServiceSpec{
 			Ports: []v1.ServicePort{
@@ -146,28 +181,55 @@ func (e *KindClient) buildStatefulset(nacos *harmonycloudcnv1alpha1.Nacos) *appv
 	// 合并cr中原有的label
 	labels = e.MergeLabels(nacos.Labels, labels)
 
-	env := []v1.EnvVar{
-		{
-			Name:  "PREFER_HOST_MODE",
-			Value: "hostname",
-		},
-	}
-	// 启动内置数据库
-	if nacos.Spec.EnableEmbedded {
+	// 设置默认的环境变量
+	env := append(nacos.Spec.Env, v1.EnvVar{
+		Name:  "PREFER_HOST_MODE",
+		Value: "hostname",
+	})
+
+	// 数据库设置
+	if nacos.Spec.Database.TypeDatabase == "embedded" {
 		env = append(env, v1.EnvVar{
 			Name:  "EMBEDDED_STORAGE",
 			Value: "embedded",
 		})
+	} else if nacos.Spec.Database.TypeDatabase == "mysql" {
+		env = append(env, v1.EnvVar{
+			Name:  "MYSQL_SERVICE_HOST",
+			Value: nacos.Spec.Database.MysqlHost,
+		})
+
+		env = append(env, v1.EnvVar{
+			Name:  "MYSQL_SERVICE_PORT",
+			Value: nacos.Spec.Database.MysqlPort,
+		})
+
+		env = append(env, v1.EnvVar{
+			Name:  "MYSQL_SERVICE_DB_NAME",
+			Value: nacos.Spec.Database.MysqlDb,
+		})
+
+		env = append(env, v1.EnvVar{
+			Name:  "MYSQL_SERVICE_USER",
+			Value: nacos.Spec.Database.MysqlUser,
+		})
+
+		env = append(env, v1.EnvVar{
+			Name:  "MYSQL_SERVICE_PASSWORD",
+			Value: nacos.Spec.Database.MysqlPassword,
+		})
 	}
+
 	// 启动模式 ，默认cluster
 	if nacos.Spec.Type == TYPE_STAND_ALONE {
 		env = append(env, v1.EnvVar{
 			Name:  "MODE",
 			Value: "standalone",
 		})
+	} else {
 		env = append(env, v1.EnvVar{
 			Name:  "NACOS_REPLICAS",
-			Value: "3",
+			Value: strconv.Itoa(int(*nacos.Spec.Replicas)),
 		})
 	}
 
@@ -214,8 +276,23 @@ func (e *KindClient) buildStatefulset(nacos *harmonycloudcnv1alpha1.Nacos) *appv
 		},
 	}
 
-	if len(nacos.Spec.VolumeClaimTemplates) > 0 {
-		ss.Spec.VolumeClaimTemplates = nacos.Spec.VolumeClaimTemplates
+	// 设置存储
+	if nacos.Spec.Volume.Enabled {
+		ss.Spec.VolumeClaimTemplates = append(ss.Spec.VolumeClaimTemplates, v1.PersistentVolumeClaim{
+			Spec: v1.PersistentVolumeClaimSpec{
+				//VolumeName:       "db",
+				StorageClassName: nacos.Spec.Volume.StorageClass,
+				AccessModes:      []v1.PersistentVolumeAccessMode{v1.ReadWriteOnce},
+				Resources: v1.ResourceRequirements{
+					Requests: nacos.Spec.Volume.Requests,
+				},
+			},
+			ObjectMeta: metav1.ObjectMeta{
+				Name:   "db",
+				Labels: labels,
+			},
+		})
+
 		localVolum := v1.VolumeMount{
 			Name:      "db",
 			MountPath: "/home/nacos/data",
@@ -254,8 +331,8 @@ func (e *KindClient) buildStatefulset(nacos *harmonycloudcnv1alpha1.Nacos) *appv
 					LocalObjectReference: v1.LocalObjectReference{Name: nacos.Name},
 					Items: []v1.KeyToPath{
 						{
-							Key:  "application.properties",
-							Path: "application.properties",
+							Key:  "custom.properties",
+							Path: "custom.properties",
 						},
 					},
 				},
@@ -263,8 +340,8 @@ func (e *KindClient) buildStatefulset(nacos *harmonycloudcnv1alpha1.Nacos) *appv
 		})
 		ss.Spec.Template.Spec.Containers[0].VolumeMounts = append(ss.Spec.Template.Spec.Containers[0].VolumeMounts, v1.VolumeMount{
 			Name:      "config",
-			MountPath: "/home/nacos/conf/application.properties",
-			SubPath:   "application.properties",
+			MountPath: "/home/nacos/init.d/custom.properties",
+			SubPath:   "custom.properties",
 		})
 	}
 	myErrors.EnsureNormal(controllerutil.SetControllerReference(nacos, ss, e.scheme))
@@ -276,7 +353,7 @@ func (e *KindClient) buildConfigMap(nacos *harmonycloudcnv1alpha1.Nacos) *v1.Con
 	labels = e.MergeLabels(nacos.Labels, labels)
 	data := make(map[string]string)
 
-	data["application.properties"] = nacos.Spec.Config
+	data["custom.properties"] = nacos.Spec.Config
 
 	cm := v1.ConfigMap{
 		ObjectMeta: metav1.ObjectMeta{

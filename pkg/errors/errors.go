@@ -21,6 +21,12 @@ func EnsureNormal(err error) {
 	}
 }
 
+func EnsureNormalMyError(err error, code int) {
+	if err != nil {
+		panic(New(code, err.Error()))
+	}
+}
+
 func EnsureEqual(i1 interface{}, i2 interface{}, code int, msg ...interface{}) {
 	if i1 != i2 {
 		panic(New(code, "msg: %v, %v is not equal %v", msg, i1, i2))

@@ -128,15 +128,15 @@ bundle-build:
 # 后面的就是自己实现
 demo:
 ifeq ($(clear),true)
-	kubectl delete -f config/samples/harmonycloud.cn_v1alpha1_nacos.yaml
+	kubectl delete -f config/samples/nacos.yaml
 	kubectl delete pod -l app=nacos --grace-period=0 --force
 else
 ifeq ($(type),cluster)
 	echo "cluster mode"
-	kubectl apply -f config/samples/harmonycloud.cn_v1alpha1_nacos_cluster.yaml
+	kubectl apply -f config/samples/nacos_cluster.yaml
 else
 	echo "standalone mode"
-	kubectl apply -f config/samples/harmonycloud.cn_v1alpha1_nacos.yaml
+	kubectl apply -f config/samples/nacos.yaml
 endif
 endif
 

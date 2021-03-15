@@ -1,5 +1,8 @@
 package errors
 
+// 2xx非错误
+const CODE_NORMAL = 200
+
 // K8s资源层面错误 3XX
 const CODE_PARAMETER_ERROR = 301
 

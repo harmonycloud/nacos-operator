@@ -56,7 +56,7 @@ func (c *OperatorClient) MakeEnsure(nacos *harmonycloudcnv1alpha1.Nacos) {
 	}
 }
 
-func (c *OperatorClient) CheckAndMakeHeal(nacos *harmonycloudcnv1alpha1.Nacos) {
+func (c *OperatorClient) PreCheck(nacos *harmonycloudcnv1alpha1.Nacos) {
 	switch nacos.Status.Phase {
 	case harmonycloudcnv1alpha1.PhaseFailed:
 		// 失败，需要修复
@@ -64,11 +64,14 @@ func (c *OperatorClient) CheckAndMakeHeal(nacos *harmonycloudcnv1alpha1.Nacos) {
 	case harmonycloudcnv1alpha1.PhaseNone:
 		// 初始化
 		nacos.Status.Phase = harmonycloudcnv1alpha1.PhaseCreating
+		panic(myErrors.New(myErrors.CODE_NORMAL, ""))
 	case harmonycloudcnv1alpha1.PhaseScale:
 	default:
 		// TODO
-
 	}
+}
+
+func (c *OperatorClient) CheckAndMakeHeal(nacos *harmonycloudcnv1alpha1.Nacos) {
 
 	// 检查kind
 	pods := c.CheckClient.CheckKind(nacos)
@@ -77,5 +80,5 @@ func (c *OperatorClient) CheckAndMakeHeal(nacos *harmonycloudcnv1alpha1.Nacos) {
 }
 
 func (c *OperatorClient) UpdateStatus(nacos *harmonycloudcnv1alpha1.Nacos) {
-	c.StatusClient.UpdateStatus(nacos)
+	c.StatusClient.UpdateStatusRunning(nacos)
 }

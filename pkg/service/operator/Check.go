@@ -55,7 +55,7 @@ func (c *CheckClient) CheckNacos(nacos *harmonycloudcnv1alpha1.Nacos, pods []cor
 	// 检查nacos是否访问通
 	for _, pod := range pods {
 		servers, err := c.nacosClient.GetClusterNodes(pod.Status.PodIP)
-		myErrors.EnsureNormal(err)
+		myErrors.EnsureNormalMyError(err, myErrors.CODE_CLUSTER_FAILE)
 		// 确保cr中实例个数和server数量相同
 		myErrors.EnsureEqual(len(servers.Servers), int(*nacos.Spec.Replicas), myErrors.CODE_CLUSTER_FAILE, "server num is not equal")
 		for _, svc := range servers.Servers {

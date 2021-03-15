@@ -1,17 +1,25 @@
 # nacos-operator
 
-nacos-operator，快速在K8s上面部署构建nacos
+nacos-operator项目，快速在K8s上面部署构建nacos。
+
+## 与nacos-k8s的项目区别
+### 优点
+- 通过operator快速构建nacos集群，指定简单的cr.yaml文件，既可以实现各种类型的nacos集群(数据库选型、standalone/cluster模式等)
+- 增加一定的运维能力，在status中增加对nacos集群状态的检查、自动化运维等(后续扩展更多功能)
 
 ## 快速开始
 ```
 # 直接使用helm方式安装operator
 cd chart/nacos-operator && helm install nacos-operator . && cd ../..
+
+# 如果没有helm, 使用kubectl进行安装, 默认安装在default下面
+kubectl apply -f chart/nacos-operator/nacos-operator-all.yaml
 ```
 
 ### 启动单实例，standalone模式
+查看cr文件
 ```
-# 查看cr文件
-cat config/samples/harmonycloud.cn_v1alpha1_nacos.yaml
+cat config/samples/nacos.yaml
 apiVersion: harmonycloud.cn/v1alpha1
 kind: Nacos
 metadata:
@@ -20,13 +28,16 @@ spec:
   type: standalone
   image: nacos/nacos-server:1.4.1
   replicas: 1
-  # 开启本地数据库
-  enableEmbedded: true
 
 # 安装demo standalone模式
-make demo type=standalone
+kubectl apply -f config/samples/nacos.yaml
+```
+查看nacos实例
+```
+kubectl get nacos
+NAME    REPLICAS   READY     TYPE         DBTYPE   VERSION   CREATETIME
+nacos   1          Running   standalone            1.4.1     2021-03-14T09:21:49Z
 
-# 查看nacos实例
 kubectl get pod  -o wide
 NAME                 READY   STATUS    RESTARTS   AGE    IP               NODE        NOMINATED NODE   READINESS GATES
 nacos-0   1/1     Running   0          84s    10.168.247.38    slave-100   <none>           <none>
@@ -41,7 +52,7 @@ status
     status: "true"
     type: leader
   phase: Running
-  version: 1.4.0
+  version: 1.4.1
 ```
 清除
 ```
@@ -49,7 +60,7 @@ make demo clear=true
 ```
 ### 启动集群模式
 ```
-cat config/samples/harmonycloud.cn_v1alpha1_nacos_cluster.yaml
+cat config/samples/nacos_cluster.yaml
 
 apiVersion: harmonycloud.cn/v1alpha1
 kind: Nacos
@@ -59,20 +70,21 @@ spec:
   type: cluster
   image: nacos/nacos-server:1.4.1
   replicas: 3
-  enableEmbedded: true
-  
+```
+```
 # 创建nacos集群
-make demo type=cluster
-
+kubectl apply -f config/samples/nacos_cluster.yaml
 
 kubectl get po -o wide
-
 NAME             READY   STATUS    RESTARTS   AGE    IP               NODE         NOMINATED NODE   READINESS GATES
 nacos-0          1/1     Running   0          111s   10.168.247.39    slave-100    <none>           <none>
 nacos-1          1/1     Running   0          109s   10.168.152.186   master-212   <none>           <none>
 nacos-2          1/1     Running   0          108s   10.168.207.209   slave-214    <none>           <none>
 
-# 等待集群组件，再次cr详情
+kubectl get nacos
+NAME    REPLICAS   READY     TYPE      DBTYPE   VERSION   CREATETIME
+nacos   3          Running   cluster            1.4.1     2021-03-14T09:33:09Z
+
 kubectl get nacos nacos -o yaml -w
 ...
 status:
@@ -124,18 +136,17 @@ kind: Nacos
 metadata:
   name: nacos
 spec:
-  ...
-  enableEmbedded: true
-  # 如果需要持久化数据，需要配置volumeClaimTemplates，否则pod重启数据丢失
-  volumeClaimTemplates:
-  - metadata:
-      name: db
-    spec:
-      accessModes: [ "ReadWriteOnce" ]
-      storageClassName: "default"
-      resources:
-        requests:
-          storage: 100Mi
+  type: standalone
+  image: nacos/nacos-server:1.4.1
+  replicas: 1
+  database:
+    type: embedded
+  # 启动数据库，不然重启后数据丢失
+  volume:
+    enabled: true
+    requests:
+      storage: 1Gi
+    storageClass: default
 ```
 
 mysql数据库
@@ -145,16 +156,53 @@ kind: Nacos
 metadata:
   name: nacos
 spec:
-...
-  config: |
-    spring.datasource.platform=mysql
-    db.num=1
-    db.url.0=jdbc:mysql://mysql:3306/nacos?characterEncoding=utf8&connectTimeout=1000&socketTimeout=3000&autoReconnect=true
-    db.user=root
-    db.password=123456
+  type: standalone
+  image: nacos/nacos-server:1.4.1
+  replicas: 1
+  database:
+    type: mysql
+    mysqlHost: mysql
+    mysqlDb: nacos
+    mysqlUser: root
+    mysqlPort: "3306"
+    mysqlPassword: "123456"
 ```
 ### 自定义配置
-支持自定义配置文件，spec.config 会直接映射成application.properties文件
+1. 通过环境变量配置 兼容nacos-docker项目， https://github.com/nacos-group/nacos-docker
+   
+    ```
+    apiVersion: harmonycloud.cn/v1alpha1
+    kind: Nacos
+    metadata:
+      name: nacos
+    spec:
+      type: standalone
+      env:
+      - key: JVM_XMS
+        value: 2g
+    ```
+
+2. 通过properties文件配置
+
+   https://github.com/nacos-group/nacos-docker/blob/master/build/bin/docker-startup.sh
+   
+   ```
+   export CUSTOM_SEARCH_NAMES="application,custom"
+   export CUSTOM_SEARCH_LOCATIONS=${BASE_DIR}/init.d/,file:${BASE_DIR}/conf/
+   ```
+
+    支持自定义配置文件，spec.config 会直接映射成custom.properties文件
+
+    ```
+    apiVersion: harmonycloud.cn/v1alpha1
+    kind: Nacos
+    metadata:
+      name: nacos
+    spec:
+    ...
+      config:|
+        management.endpoints.web.exposure.include=*
+    ```
 
 ## 开发文档
 ```
@@ -175,3 +223,8 @@ make install
     ```
     
     设置了以后发现，pod能够running，但是集群状态始终无法同步，不同节点出现不同leader；所以暂时不开启readiness和liveiness
+   
+
+2. 组集群失败
+```
+java.lang.IllegalStateException: unable to find local peer: nacos-1.nacos-headless.shenkonghui.svc.cluster.local:8848, all peers: []```

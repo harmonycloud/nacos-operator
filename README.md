@@ -2,19 +2,26 @@
 
 nacos-operator, quickly deploy and build nacos on K8s.
 
+## Difference with nacos-k8s
+### advantage
+- Quickly build a nacos cluster through the operator, specify a simple cr.yaml file, and realize various types of nacos clusters (database selection, standalone/cluster mode, etc.)
+- Add a certain amount of operation and maintenance capabilities, add the inspection of the nacos cluster status, automatic operation and maintenance, etc. in the status (more functions will be expanded later)
+
+
 [中文文档](./README-CN.md)
 ## Quick start
 ```
-# install crd
-make install
+# Install operator directly using helm
+cd chart/nacos-operator && helm install nacos-operator . && cd ../..
 
-# run operator
-make run
+# If there is no helm, use kubectl to install it, and install it under default by default
+kubectl apply -f chart/nacos-operator/nacos-operator-all.yaml
 ```
+
 ### Start single instance, standalone mode
+View cr file
 ```
-# View cr file
-cat config/samples/harmonycloud.cn_v1alpha1_nacos.yaml
+cat config/samples/nacos.yaml
 apiVersion: harmonycloud.cn/v1alpha1
 kind: Nacos
 metadata:
@@ -23,13 +30,17 @@ spec:
   type: standalone
   image: nacos/nacos-server:1.4.1
   replicas: 1
-  # enable the local database
-  enableEmbedded: true
 
 # Install demo standalone mode
-make demo type=standalone
+kubectl apply -f config/samples/nacos.yaml
+```
 
-# View nacos instance
+View nacos instance
+```
+kubectl get nacos
+NAME    REPLICAS   READY     TYPE         DBTYPE   VERSION   CREATETIME
+nacos   1          Running   standalone            1.4.1     2021-03-14T09:21:49Z
+
 kubectl get pod  -o wide
 NAME                 READY   STATUS    RESTARTS   AGE    IP               NODE        NOMINATED NODE   READINESS GATES
 nacos-0   1/1     Running   0          84s    10.168.247.38    slave-100   <none>           <none>
@@ -44,15 +55,15 @@ status
     status: "true"
     type: leader
   phase: Running
-  version: 1.4.0
+  version: 1.4.1
 ```
-clear
+Clear
 ```
 make demo clear=true
 ```
 ### Start cluster mode
 ```
-cat config/samples/harmonycloud.cn_v1alpha1_nacos_cluster.yaml
+cat config/samples/nacos_cluster.yaml
 
 apiVersion: harmonycloud.cn/v1alpha1
 kind: Nacos
@@ -62,20 +73,21 @@ spec:
   type: cluster
   image: nacos/nacos-server:1.4.1
   replicas: 3
-  enableEmbedded: true
-  
+```
+```
 # Create nacos cluster
-make demo type=cluster
-
+kubectl apply -f config/samples/nacos_cluster.yaml
 
 kubectl get po -o wide
-
 NAME             READY   STATUS    RESTARTS   AGE    IP               NODE         NOMINATED NODE   READINESS GATES
 nacos-0          1/1     Running   0          111s   10.168.247.39    slave-100    <none>           <none>
 nacos-1          1/1     Running   0          109s   10.168.152.186   master-212   <none>           <none>
 nacos-2          1/1     Running   0          108s   10.168.207.209   slave-214    <none>           <none>
 
-# Wait for the cluster components, check the cr details again
+kubectl get nacos
+NAME    REPLICAS   READY     TYPE      DBTYPE   VERSION   CREATETIME
+nacos   3          Running   cluster            1.4.1     2021-03-14T09:33:09Z
+
 kubectl get nacos nacos -o yaml -w
 ...
 status:
@@ -109,62 +121,97 @@ status:
   version: 1.4.1
 ```
 
-clear
+Clear
 ```
 make demo clear=true
 ```
 ## Configuration
-### Set mode
+### Setting Mode
 Currently supports standalone and cluster modes
 
 By configuring spec.type as standalone/cluster
 
 ### Database configuration
-embedded database
+embedded
 ```
 apiVersion: harmonycloud.cn/v1alpha1
 kind: Nacos
 metadata:
   name: nacos
 spec:
-  ...
-  enableEmbedded: true
-  # If you need to persist data, you need to configure volumeClaimTemplates, otherwise the pod restarts and the data will be lost
-  volumeClaimTemplates:
-  - metadata:
-      name: db
-    spec:
-      accessModes: [ "ReadWriteOnce" ]
-      storageClassName: "default"
-      resources:
-        requests:
-          storage: 100Mi
+  type: standalone
+  image: nacos/nacos-server:1.4.1
+  replicas: 1
+  database:
+    type: embedded
+  # Start the data volume, otherwise the data will be lost after restart
+  volume:
+    enabled: true
+    requests:
+      storage: 1Gi
+    storageClass: default
 ```
 
-mysql database
+mysql
 ```
 apiVersion: harmonycloud.cn/v1alpha1
 kind: Nacos
 metadata:
   name: nacos
 spec:
-...
-  config: |
-    spring.datasource.platform=mysql
-    db.num=1
-    db.url.0=jdbc:mysql://mysql:3306/nacos?characterEncoding=utf8&connectTimeout=1000&socketTimeout=3000&autoReconnect=true
-    db.user=root
-    db.password=123456
+  type: standalone
+  image: nacos/nacos-server:1.4.1
+  replicas: 1
+  database:
+    type: mysql
+    mysqlHost: mysql
+    mysqlDb: nacos
+    mysqlUser: root
+    mysqlPort: "3306"
+    mysqlPassword: "123456"
 ```
 ### Custom configuration
-Support custom configuration file, spec.config will be directly mapped to application.properties file
+1. Configure through environment variables, compatible with nacos-docker project, https://github.com/nacos-group/nacos-docker
 
-## FAQ
-1. Problem setting readiness and liveiness cluster
-
-   The last instance cannot be ready. I searched for issus and found that the following settings are required
     ```
-    nacos.naming.data.warmup=false
+    apiVersion: harmonycloud.cn/v1alpha1
+    kind: Nacos
+    metadata:
+      name: nacos
+    spec:
+      type: standalone
+      env:
+      - key: JVM_XMS
+        value: 2g
     ```
 
-   After setting it up, it is found that the pod can run, but the cluster status cannot always be synchronized, and different nodes have different leaders; therefore, readiness and liveiness are not enabled for the time being
+2. Configure through the properties file
+
+   https://github.com/nacos-group/nacos-docker/blob/master/build/bin/docker-startup.sh
+
+   ```
+   export CUSTOM_SEARCH_NAMES="application,custom"
+   export CUSTOM_SEARCH_LOCATIONS=${BASE_DIR}/init.d/,file:${BASE_DIR}/conf/
+   ```
+
+   Support custom configuration file, spec.config will be directly mapped to custom.properties file
+
+    ```
+    apiVersion: harmonycloud.cn/v1alpha1
+    kind: Nacos
+    metadata:
+      name: nacos
+    spec:
+    ...
+      config:|
+        management.endpoints.web.exposure.include=*
+    ```
+
+## Development Document
+```
+# Install crd
+make install
+
+# Run the operator as source code
+# make run
+```

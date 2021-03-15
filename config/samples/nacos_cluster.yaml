@@ -3,10 +3,6 @@ kind: Nacos
 metadata:
   name: nacos
 spec:
-  # standalone/cluster
-  type: standalone
+  type: cluster
   image: nacos/nacos-server:1.4.1
-  replicas: 1
-  # 开启本地数据库
-  enableEmbedded: true
-
+  replicas: 3

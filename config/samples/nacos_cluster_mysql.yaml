@@ -3,10 +3,14 @@ kind: Nacos
 metadata:
   name: nacos
 spec:
-  # standalone/cluster
   type: cluster
   image: nacos/nacos-server:1.4.1
   replicas: 3
-  enableEmbedded: true
-#  config: |
-#    nacos.naming.data.warmup=false
+  database:
+    type: mysql
+    mysqlHost: mysql
+    mysqlDb: nacos
+    mysqlUser: root
+    mysqlPort: "3306"
+    mysqlPassword: "123456"
+
