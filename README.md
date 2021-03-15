@@ -2,13 +2,12 @@
 
 nacos-operator, quickly deploy and build nacos on K8s.
 
+[中文文档](./README-CN.md)
 ## Difference with nacos-k8s
 ### advantage
 - Quickly build a nacos cluster through the operator, specify a simple cr.yaml file, and realize various types of nacos clusters (database selection, standalone/cluster mode, etc.)
 - Add a certain amount of operation and maintenance capabilities, add the inspection of the nacos cluster status, automatic operation and maintenance, etc. in the status (more functions will be expanded later)
 
-
-[中文文档](./README-CN.md)
 ## Quick start
 ```
 # Install operator directly using helm

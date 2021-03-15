@@ -141,7 +141,7 @@ spec:
   replicas: 1
   database:
     type: embedded
-  # 启动数据库，不然重启后数据丢失
+  # 启动数据卷，不然重启后数据丢失
   volume:
     enabled: true
     requests:
