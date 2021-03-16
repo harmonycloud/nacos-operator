@@ -264,4 +264,27 @@ java.lang.IllegalStateException: unable to find local peer: nacos-1.nacos-headle
 看样子应该是pod是按照顺序启动，无法解析后面还未就绪的pod的ip.
 1. 在service中加入属性PublishNotReadyAddresses=true(已实现)。但是如果pod还未分配IP？还是会失败。 
 2. 设置statefulset spec.PodManagementPolicy=Parallel(已实现)，让pod同时启动而不是1个1个启动。提高成功率。
-3. 加上initcontainer, 检测headless service全部通过以后才能启动pod(未实现)
+3. 加上initcontainer, 检测headless service全部通过以后才能启动pod(已实现)
+为了兼容社区docker/同时不想加initcontainer增加复杂度，cmd中更改启动脚本，在启动docker-startup.sh前先执行
+```
+var initScrit = `array=(%s)
+succ = 0
+
+for element in ${array[@]} 
+do
+  while true
+  do
+    ping $element -c 1 > /dev/stdout
+    if [[ $? -eq 0 ]]; then
+      echo $element "all domain ready"
+      break
+    else
+      echo $element "wait for other domain ready"
+    fi
+    sleep 1
+  done
+done
+sleep 1
+
+echo "init success"`
+```

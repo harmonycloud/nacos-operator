@@ -25,6 +25,27 @@ const NACOS = "nacos"
 const NACOS_PORT = 8848
 const RAFT_PORT = 7848
 
+var initScrit = `array=(%s)
+succ = 0
+
+for element in ${array[@]} 
+do
+  while true
+  do
+    ping $element -c 1 > /dev/stdout
+    if [[ $? -eq 0 ]]; then
+      echo $element "all domain ready"
+      break
+    else
+      echo $element "wait for other domain ready"
+    fi
+    sleep 1
+  done
+done
+sleep 1
+
+echo "init success"`
+
 type IKindClient interface {
 	Ensure(nacos harmonycloudcnv1alpha1.Nacos)
 	EnsureStatefulset(nacos harmonycloudcnv1alpha1.Nacos)
@@ -176,6 +197,7 @@ func (e *KindClient) buildService(nacos *harmonycloudcnv1alpha1.Nacos) *v1.Servi
 	myErrors.EnsureNormal(controllerutil.SetControllerReference(nacos, svc, e.scheme))
 	return svc
 }
+
 func (e *KindClient) buildStatefulset(nacos *harmonycloudcnv1alpha1.Nacos) *appv1.StatefulSet {
 	// 生成label
 	labels := e.generateLabels(nacos.Name, NACOS)
@@ -253,8 +275,9 @@ func (e *KindClient) buildStatefulset(nacos *harmonycloudcnv1alpha1.Nacos) *appv
 					Volumes: []v1.Volume{},
 					Containers: []v1.Container{
 						{
-							Name:  nacos.Name,
-							Image: nacos.Spec.Image,
+							Command: []string{"sh", "-c", "&&bin/docker-startup.sh"},
+							Name:    nacos.Name,
+							Image:   nacos.Spec.Image,
 							Ports: []v1.ContainerPort{
 								{
 									Name:          "client",
@@ -439,8 +462,10 @@ func (e *KindClient) buildDefaultConfigMap(nacos *harmonycloudcnv1alpha1.Nacos) 
 func (e *KindClient) buildStatefulsetCluster(nacos *harmonycloudcnv1alpha1.Nacos, ss *appv1.StatefulSet) *appv1.StatefulSet {
 	ss.Spec.ServiceName = e.generateHeadlessSvcName(nacos)
 	serivce := ""
+	serivceNoPort := ""
 	for i := 0; i < int(*nacos.Spec.Replicas); i++ {
 		serivce = fmt.Sprintf("%v%v-%d.%v.%v.%v:%v ", serivce, e.generateName(nacos), i, e.generateHeadlessSvcName(nacos), nacos.Namespace, "svc.cluster.local", NACOS_PORT)
+		serivceNoPort = fmt.Sprintf("%v%v-%d.%v.%v.%v ", serivceNoPort, e.generateName(nacos), i, e.generateHeadlessSvcName(nacos), nacos.Namespace, "svc.cluster.local")
 	}
 	serivce = serivce[0 : len(serivce)-1]
 	env := []v1.EnvVar{
@@ -450,6 +475,8 @@ func (e *KindClient) buildStatefulsetCluster(nacos *harmonycloudcnv1alpha1.Nacos
 		},
 	}
 	ss.Spec.Template.Spec.Containers[0].Env = append(ss.Spec.Template.Spec.Containers[0].Env, env...)
+	// 先检查域名解析再启动
+	ss.Spec.Template.Spec.Containers[0].Command = []string{"sh", "-c", fmt.Sprintf("%s&&bin/docker-startup.sh", fmt.Sprintf(initScrit, serivceNoPort))}
 	return ss
 }
 
