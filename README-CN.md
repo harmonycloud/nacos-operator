@@ -123,6 +123,23 @@ status:
 make demo clear=true
 ```
 ## 配置
+全部参数如下
+
+| 参数 | 描述 | 参考值 |
+| --- | --- | --- |
+| spec.type | 集群类型 | 目前支持standalone 和 cluster |
+| spec.image | 镜像地址，兼容社区镜像 | nacos/nacos-server:1.4.1 |
+| spec.replicas | 实例数量 | 1 |
+| spec.database.type | 数据库类型 | 目前支持mysql和embedded |
+| spec.database.mysqlHost | mysql连接地址 | 默认mysql |
+| spec.database.mysqlPort | mysql端口 | 默认3306 |
+| spec.database.mysqlUser | mysql用户 | 默认root |
+| spec.database.mysqlPassword | mysql密码 | 默认123456 |
+| spec.database.mysqlDb | mysq数据库 | 默认nacos |
+| spec.volume.enabled | 是否开启数据卷 | true，如果数据库类型是embedded，请开启数据卷，否则重启pod数据丢失 |
+| spec.volume.requests.storage | 存储大小 | 1Gi |
+| spec.volume.storageClass | 存储类 | default |
+| spec.config | 其他自定义配置，自动映射到custom.propretise | 格式和configmap兼容 |
 ### 设置模式
 目前支持standalone和cluster模式
 
