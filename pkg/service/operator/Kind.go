@@ -157,6 +157,7 @@ func (e *KindClient) buildService(nacos *harmonycloudcnv1alpha1.Nacos) *v1.Servi
 			Annotations: annotations,
 		},
 		Spec: v1.ServiceSpec{
+			PublishNotReadyAddresses: true,
 			Ports: []v1.ServicePort{
 				{
 					Name:     "client",
@@ -241,8 +242,9 @@ func (e *KindClient) buildStatefulset(nacos *harmonycloudcnv1alpha1.Nacos) *appv
 			Annotations: nacos.Annotations,
 		},
 		Spec: appv1.StatefulSetSpec{
-			Replicas: nacos.Spec.Replicas,
-			Selector: &metav1.LabelSelector{MatchLabels: labels},
+			PodManagementPolicy: "Parallel",
+			Replicas:            nacos.Spec.Replicas,
+			Selector:            &metav1.LabelSelector{MatchLabels: labels},
 			Template: v1.PodTemplateSpec{
 				ObjectMeta: metav1.ObjectMeta{
 					Labels: labels,

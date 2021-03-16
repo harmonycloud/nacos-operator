@@ -244,4 +244,24 @@ make install
 
 2. 组集群失败
 ```
+[root@nacos-0 logs]# tail -n 200 nacos.log
 java.lang.IllegalStateException: unable to find local peer: nacos-1.nacos-headless.shenkonghui.svc.cluster.local:8848, all peers: []```
+
+```
+```
+[root@nacos-0 logs]# tail -n 200 alipay-jraft.log
+2021-03-16 14:08:48,223 WARN Channel in TRANSIENT_FAILURE state: nacos-2.nacos-headless.shenkonghui.svc.cluster.local:7848.
+
+2021-03-16 14:08:48,223 WARN Channel in SHUTDOWN state: nacos-2.nacos-headless.shenkonghui.svc.cluster.local:7848.
+```
+
+```
+[root@nacos-0 logs]# tail -n 200 nacos-cluster.log
+2021-03-16 14:08:05,710 INFO Current addressing mode selection : FileConfigMemberLookup
+
+2021-03-16 14:08:05,717 ERROR nacos-XXXX [serverlist] failed to get serverlist from disk!, error : The IPv4 address("nacos-2.nacos-headless.shenkonghui.svc.cluster.local") is incorrect.
+```
+看样子应该是pod是按照顺序启动，无法解析后面还未就绪的pod的ip.
+1. 在service中加入属性PublishNotReadyAddresses=true(已实现)。但是如果pod还未分配IP？还是会失败。 
+2. 设置statefulset spec.PodManagementPolicy=Parallel(已实现)，让pod同时启动而不是1个1个启动。提高成功率。
+3. 加上initcontainer, 检测headless service全部通过以后才能启动pod(未实现)

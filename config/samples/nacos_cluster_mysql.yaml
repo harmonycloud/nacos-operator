@@ -13,4 +13,5 @@ spec:
     mysqlUser: root
     mysqlPort: "3306"
     mysqlPassword: "123456"
-
+  config: |
+    management.endpoints.web.exposure.include=*
