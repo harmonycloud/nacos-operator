@@ -33,13 +33,13 @@ type NacosSpec struct {
 	ImagePullSecrets []v1.LocalObjectReference `json:"imagePullSecrets,omitempty" patchStrategy:"merge" patchMergeKey:"name" protobuf:"bytes,15,rep,name=imagePullSecrets"`
 	Replicas         *int32                    `json:"replicas,omitempty"`
 	//VolumeClaimTemplates []v1.PersistentVolumeClaim `json:"volumeClaimTemplates,omitempty" protobuf:"bytes,4,rep,name=volumeClaimTemplates"`
-	Resource       v1.ResourceList   `json:"limits,omitempty" protobuf:"bytes,1,rep,name=resource,casttype=ResourceList,castkey=ResourceName"`
-	Affinity       *v1.Affinity      `json:"affinity,omitempty" protobuf:"bytes,18,opt,name=affinity"`
-	Tolerations    []v1.Toleration   `json:"tolerations,omitempty" protobuf:"bytes,22,opt,name=tolerations"`
-	NodeSelector   map[string]string `json:"nodeSelector,omitempty" protobuf:"bytes,7,rep,name=nodeSelector"`
-	LivenessProbe  *v1.Probe         `json:"livenessProbe,omitempty" protobuf:"bytes,10,opt,name=livenessProbe"`
-	ReadinessProbe *v1.Probe         `json:"readinessProbe,omitempty" protobuf:"bytes,11,opt,name=readinessProbe"`
-	Env            []v1.EnvVar       `json:"env,omitempty" patchStrategy:"merge" patchMergeKey:"name" protobuf:"bytes,7,rep,name=env"`
+	Resources      v1.ResourceRequirements `json:"resources,omitempty" protobuf:"bytes,8,opt,name=resources"`
+	Affinity       *v1.Affinity            `json:"affinity,omitempty" protobuf:"bytes,18,opt,name=affinity"`
+	Tolerations    []v1.Toleration         `json:"tolerations,omitempty" protobuf:"bytes,22,opt,name=tolerations"`
+	NodeSelector   map[string]string       `json:"nodeSelector,omitempty" protobuf:"bytes,7,rep,name=nodeSelector"`
+	LivenessProbe  *v1.Probe               `json:"livenessProbe,omitempty" protobuf:"bytes,10,opt,name=livenessProbe"`
+	ReadinessProbe *v1.Probe               `json:"readinessProbe,omitempty" protobuf:"bytes,11,opt,name=readinessProbe"`
+	Env            []v1.EnvVar             `json:"env,omitempty" patchStrategy:"merge" patchMergeKey:"name" protobuf:"bytes,7,rep,name=env"`
 
 	// 自定义配置
 	// 部署模式

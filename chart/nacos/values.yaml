@@ -8,24 +8,28 @@ image:
   tag: "1.4.1"
 
 
-enableEmbedded: true
-
 imagePullSecrets: []
 nameOverride: ""
 fullnameOverride: ""
 
-storage:
-  enabled: false
+volume:
+  enabled: true
   storageSize: 1Gi
   storageClassName: default
 
-resources: {}
-  # limits:
-  #   cpu: 100m
-  #   memory: 128Mi
-  # requests:
-  #   cpu: 100m
-  #   memory: 128Mi
+database:
+  type: embedded
+
+resources:
+  limits:
+    cpu: 1000m
+    memory: 2048Mi
+  requests:
+    cpu: 1000m
+    memory: 2048Mi
+
+config: |
+  management.endpoints.web.exposure.include=*
 
 nodeSelector: {}
 

@@ -51,6 +51,7 @@ func (c *OperatorClient) MakeEnsure(nacos *harmonycloudcnv1alpha1.Nacos) {
 		c.KindClient.EnsureConfigmap(nacos)
 		c.KindClient.EnsureStatefulsetCluster(nacos)
 		c.KindClient.EnsureHeadlessServiceCluster(nacos)
+		c.KindClient.EnsureClientService(nacos)
 	default:
 		panic(myErrors.New(myErrors.CODE_PARAMETER_ERROR, myErrors.MSG_PARAMETER_ERROT, "nacos.Spec.Type", nacos.Spec.Type))
 	}

@@ -98,6 +98,9 @@ func (e *KindClient) generateName(nacos *harmonycloudcnv1alpha1.Nacos) string {
 func (e *KindClient) generateHeadlessSvcName(nacos *harmonycloudcnv1alpha1.Nacos) string {
 	return fmt.Sprintf("%s-headless", nacos.Name)
 }
+func (e *KindClient) generateClientSvcName(nacos *harmonycloudcnv1alpha1.Nacos) string {
+	return fmt.Sprintf("%s-client", nacos.Name)
+}
 
 // CR格式验证
 func (e *KindClient) ValidationField(nacos *harmonycloudcnv1alpha1.Nacos) {
@@ -151,9 +154,14 @@ func (e *KindClient) EnsureServiceCluster(nacos *harmonycloudcnv1alpha1.Nacos) {
 	myErrors.EnsureNormal(e.k8sService.CreateOrUpdateService(nacos.Namespace, ss))
 }
 
+func (e *KindClient) EnsureClientService(nacos *harmonycloudcnv1alpha1.Nacos) {
+	ss := e.buildClientService(nacos)
+	myErrors.EnsureNormal(e.k8sService.CreateIfNotExistsService(nacos.Namespace, ss))
+}
+
 func (e *KindClient) EnsureHeadlessServiceCluster(nacos *harmonycloudcnv1alpha1.Nacos) {
 	ss := e.buildService(nacos)
-	ss = e.buildHeadlessServiceCluster(ss)
+	ss = e.buildHeadlessServiceCluster(ss, nacos)
 	myErrors.EnsureNormal(e.k8sService.CreateOrUpdateService(nacos.Namespace, ss))
 }
 
@@ -172,7 +180,7 @@ func (e *KindClient) buildService(nacos *harmonycloudcnv1alpha1.Nacos) *v1.Servi
 
 	svc := &v1.Service{
 		ObjectMeta: metav1.ObjectMeta{
-			Name:        e.generateHeadlessSvcName(nacos),
+			Name:        nacos.Name,
 			Namespace:   nacos.Namespace,
 			Labels:      labels,
 			Annotations: annotations,
@@ -188,6 +196,35 @@ func (e *KindClient) buildService(nacos *harmonycloudcnv1alpha1.Nacos) *v1.Servi
 				{
 					Name:     "rpc",
 					Port:     RAFT_PORT,
+					Protocol: "TCP",
+				},
+			},
+			Selector: labels,
+		},
+	}
+	myErrors.EnsureNormal(controllerutil.SetControllerReference(nacos, svc, e.scheme))
+	return svc
+}
+
+func (e *KindClient) buildClientService(nacos *harmonycloudcnv1alpha1.Nacos) *v1.Service {
+	labels := e.generateLabels(nacos.Name, NACOS)
+	labels = e.MergeLabels(nacos.Labels, labels)
+
+	annotations := e.MergeLabels(e.generateAnnoation(), nacos.Annotations)
+
+	svc := &v1.Service{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:        e.generateClientSvcName(nacos),
+			Namespace:   nacos.Namespace,
+			Labels:      labels,
+			Annotations: annotations,
+		},
+		Spec: v1.ServiceSpec{
+			PublishNotReadyAddresses: true,
+			Ports: []v1.ServicePort{
+				{
+					Name:     "client",
+					Port:     NACOS_PORT,
 					Protocol: "TCP",
 				},
 			},
@@ -272,7 +309,10 @@ func (e *KindClient) buildStatefulset(nacos *harmonycloudcnv1alpha1.Nacos) *appv
 					Labels: labels,
 				},
 				Spec: v1.PodSpec{
-					Volumes: []v1.Volume{},
+					Volumes:      []v1.Volume{},
+					NodeSelector: nacos.Spec.NodeSelector,
+					Tolerations:  nacos.Spec.Tolerations,
+					Affinity:     nacos.Spec.Affinity,
 					Containers: []v1.Container{
 						{
 							Command: []string{"sh", "-c", "&&bin/docker-startup.sh"},
@@ -294,6 +334,7 @@ func (e *KindClient) buildStatefulset(nacos *harmonycloudcnv1alpha1.Nacos) *appv
 							LivenessProbe:  nacos.Spec.LivenessProbe,
 							ReadinessProbe: nacos.Spec.ReadinessProbe,
 							VolumeMounts:   []v1.VolumeMount{},
+							Resources:      nacos.Spec.Resources,
 						},
 					},
 				},
@@ -480,7 +521,8 @@ func (e *KindClient) buildStatefulsetCluster(nacos *harmonycloudcnv1alpha1.Nacos
 	return ss
 }
 
-func (e *KindClient) buildHeadlessServiceCluster(svc *v1.Service) *v1.Service {
+func (e *KindClient) buildHeadlessServiceCluster(svc *v1.Service, nacos *harmonycloudcnv1alpha1.Nacos) *v1.Service {
 	svc.Spec.ClusterIP = "None"
+	svc.Name = e.generateHeadlessSvcName(nacos)
 	return svc
 }

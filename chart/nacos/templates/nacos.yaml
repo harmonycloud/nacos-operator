@@ -25,24 +25,29 @@ spec:
   resources:
   {{- toYaml . | nindent 4 }}
   {{- end }}
-  {{- if .Values.config }}
-  config: |
-    nacos.naming.distro.taskDispatchThreadCount=10
-	  nacos.naming.distro.taskDispatchPeriod=200
-	  nacos.naming.distro.batchSyncKeyCount=1000
-	  nacos.naming.distro.initDataRatio=0.9
-	  nacos.naming.distro.syncRetryDelay=5000
-	  nacos.naming.data.warmup=true
-{{ .Values.config | indent 4 }}
+  {{- with .Values.env }}
+  env:
+  {{- toYaml . | nindent 4 }}
   {{- end }}
-{{-  if .Values.storage.enabled }}
-  volumeClaimTemplates:
-  - metadata:
-      name: db
-    spec:
-      accessModes: [ "ReadWriteOnce" ]
-      storageClassName: {{ .Values.storage.storageClassName}}
-      resources:
-        requests:
-          storage: {{ .Values.storage.storageSize}}
-{{-  end }}
+  {{-  if .Values.database }}
+  database:
+    type: {{ .Values.database.type}}
+    {{- if eq .Values.database.type "mysql"}}
+    mysqlHost: {{ .Values.database.mysqlHost}}
+    mysqlDb: {{ .Values.database.mysqlDb}}
+    mysqlUser: {{ .Values.database.mysqlUser}}
+    mysqlPort: "{{ .Values.database.mysqlPort}}"
+    mysqlPassword: "{{ .Values.database.mysqlPassword}}"
+    {{-  end }}
+  {{-  end }}
+  {{-  if  eq .Values.volume.enabled true}}
+  volume:
+    enabled: {{ .Values.volume.enabled}}
+    requests:
+      storage: {{ .Values.volume.storageSize}}
+    storageClass: {{ .Values.volume.storageClassName}}
+  {{-  end }}
+  config: |
+{{- if .Values.config }}
+{{ .Values.config | indent 4 }}
+{{- end }}
