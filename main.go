@@ -20,7 +20,7 @@ import (
 	"flag"
 	"os"
 
-	"harmonycloud.cn/nacos-operator/pkg/service/operator"
+	"nacos.io/nacos-operator/pkg/service/operator"
 
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/klog/klogr"
@@ -34,8 +34,8 @@ import (
 	"net/http"
 	_ "net/http/pprof"
 
-	harmonycloudcnv1alpha1 "harmonycloud.cn/nacos-operator/api/v1alpha1"
-	"harmonycloud.cn/nacos-operator/controllers"
+	nacosgroupv1alpha1 "nacos.io/nacos-operator/api/v1alpha1"
+	"nacos.io/nacos-operator/controllers"
 	// +kubebuilder:scaffold:imports
 )
 
@@ -47,7 +47,7 @@ var (
 func init() {
 	utilruntime.Must(clientgoscheme.AddToScheme(scheme))
 
-	utilruntime.Must(harmonycloudcnv1alpha1.AddToScheme(scheme))
+	utilruntime.Must(nacosgroupv1alpha1.AddToScheme(scheme))
 	// +kubebuilder:scaffold:scheme
 }
 
@@ -71,7 +71,7 @@ func main() {
 		MetricsBindAddress: metricsAddr,
 		Port:               9443,
 		LeaderElection:     enableLeaderElection,
-		LeaderElectionID:   "219866ca.harmonycloud.cn",
+		LeaderElectionID:   "219866ca.nacos.io",
 	})
 	if err != nil {
 		setupLog.Error(err, "unable to start manager")

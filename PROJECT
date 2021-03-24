@@ -1,9 +1,9 @@
-domain: harmonycloud.cn
+domain: nacos.io
 layout: go.kubebuilder.io/v2
 projectName: nacos-operator
 repo: nacos-operator
 resources:
-- group: harmonycloud.cn
+- group: nacos.io
   kind: Nacos
   version: v1alpha1
 version: 3-alpha

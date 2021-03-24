@@ -10,13 +10,13 @@ import (
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
-	myErrors "harmonycloud.cn/nacos-operator/pkg/errors"
+	myErrors "nacos.io/nacos-operator/pkg/errors"
 
 	log "github.com/go-logr/logr"
-	harmonycloudcnv1alpha1 "harmonycloud.cn/nacos-operator/api/v1alpha1"
-	"harmonycloud.cn/nacos-operator/pkg/service/k8s"
 	appv1 "k8s.io/api/apps/v1"
 	v1 "k8s.io/api/core/v1"
+	nacosgroupv1alpha1 "nacos.io/nacos-operator/api/v1alpha1"
+	"nacos.io/nacos-operator/pkg/service/k8s"
 )
 
 const TYPE_STAND_ALONE = "standalone"
@@ -47,9 +47,9 @@ sleep 1
 echo "init success"`
 
 type IKindClient interface {
-	Ensure(nacos harmonycloudcnv1alpha1.Nacos)
-	EnsureStatefulset(nacos harmonycloudcnv1alpha1.Nacos)
-	EnsureConfigmap(nacos harmonycloudcnv1alpha1.Nacos)
+	Ensure(nacos nacosgroupv1alpha1.Nacos)
+	EnsureStatefulset(nacos nacosgroupv1alpha1.Nacos)
+	EnsureConfigmap(nacos nacosgroupv1alpha1.Nacos)
 }
 
 type KindClient struct {
@@ -91,19 +91,19 @@ func (e *KindClient) MergeLabels(allLabels ...map[string]string) map[string]stri
 	return res
 }
 
-func (e *KindClient) generateName(nacos *harmonycloudcnv1alpha1.Nacos) string {
+func (e *KindClient) generateName(nacos *nacosgroupv1alpha1.Nacos) string {
 	return nacos.Name
 }
 
-func (e *KindClient) generateHeadlessSvcName(nacos *harmonycloudcnv1alpha1.Nacos) string {
+func (e *KindClient) generateHeadlessSvcName(nacos *nacosgroupv1alpha1.Nacos) string {
 	return fmt.Sprintf("%s-headless", nacos.Name)
 }
-func (e *KindClient) generateClientSvcName(nacos *harmonycloudcnv1alpha1.Nacos) string {
+func (e *KindClient) generateClientSvcName(nacos *nacosgroupv1alpha1.Nacos) string {
 	return fmt.Sprintf("%s-client", nacos.Name)
 }
 
 // CR格式验证
-func (e *KindClient) ValidationField(nacos *harmonycloudcnv1alpha1.Nacos) {
+func (e *KindClient) ValidationField(nacos *nacosgroupv1alpha1.Nacos) {
 
 	if nacos.Spec.Type == "" {
 		nacos.Spec.Type = "standalone"
@@ -133,46 +133,46 @@ func (e *KindClient) ValidationField(nacos *harmonycloudcnv1alpha1.Nacos) {
 	}
 }
 
-func (e *KindClient) EnsureStatefulsetCluster(nacos *harmonycloudcnv1alpha1.Nacos) {
+func (e *KindClient) EnsureStatefulsetCluster(nacos *nacosgroupv1alpha1.Nacos) {
 	ss := e.buildStatefulset(nacos)
 	ss = e.buildStatefulsetCluster(nacos, ss)
 	myErrors.EnsureNormal(e.k8sService.CreateOrUpdateStatefulSet(nacos.Namespace, ss))
 }
 
-func (e *KindClient) EnsureStatefulset(nacos *harmonycloudcnv1alpha1.Nacos) {
+func (e *KindClient) EnsureStatefulset(nacos *nacosgroupv1alpha1.Nacos) {
 	ss := e.buildStatefulset(nacos)
 	myErrors.EnsureNormal(e.k8sService.CreateOrUpdateStatefulSet(nacos.Namespace, ss))
 }
 
-func (e *KindClient) EnsureService(nacos *harmonycloudcnv1alpha1.Nacos) {
+func (e *KindClient) EnsureService(nacos *nacosgroupv1alpha1.Nacos) {
 	ss := e.buildService(nacos)
 	myErrors.EnsureNormal(e.k8sService.CreateIfNotExistsService(nacos.Namespace, ss))
 }
 
-func (e *KindClient) EnsureServiceCluster(nacos *harmonycloudcnv1alpha1.Nacos) {
+func (e *KindClient) EnsureServiceCluster(nacos *nacosgroupv1alpha1.Nacos) {
 	ss := e.buildService(nacos)
 	myErrors.EnsureNormal(e.k8sService.CreateOrUpdateService(nacos.Namespace, ss))
 }
 
-func (e *KindClient) EnsureClientService(nacos *harmonycloudcnv1alpha1.Nacos) {
+func (e *KindClient) EnsureClientService(nacos *nacosgroupv1alpha1.Nacos) {
 	ss := e.buildClientService(nacos)
 	myErrors.EnsureNormal(e.k8sService.CreateIfNotExistsService(nacos.Namespace, ss))
 }
 
-func (e *KindClient) EnsureHeadlessServiceCluster(nacos *harmonycloudcnv1alpha1.Nacos) {
+func (e *KindClient) EnsureHeadlessServiceCluster(nacos *nacosgroupv1alpha1.Nacos) {
 	ss := e.buildService(nacos)
 	ss = e.buildHeadlessServiceCluster(ss, nacos)
 	myErrors.EnsureNormal(e.k8sService.CreateOrUpdateService(nacos.Namespace, ss))
 }
 
-func (e *KindClient) EnsureConfigmap(nacos *harmonycloudcnv1alpha1.Nacos) {
+func (e *KindClient) EnsureConfigmap(nacos *nacosgroupv1alpha1.Nacos) {
 	if nacos.Spec.Config != "" {
 		cm := e.buildConfigMap(nacos)
 		myErrors.EnsureNormal(e.k8sService.CreateIfNotExistsConfigMap(nacos.Namespace, cm))
 	}
 }
 
-func (e *KindClient) buildService(nacos *harmonycloudcnv1alpha1.Nacos) *v1.Service {
+func (e *KindClient) buildService(nacos *nacosgroupv1alpha1.Nacos) *v1.Service {
 	labels := e.generateLabels(nacos.Name, NACOS)
 	labels = e.MergeLabels(nacos.Labels, labels)
 
@@ -206,7 +206,7 @@ func (e *KindClient) buildService(nacos *harmonycloudcnv1alpha1.Nacos) *v1.Servi
 	return svc
 }
 
-func (e *KindClient) buildClientService(nacos *harmonycloudcnv1alpha1.Nacos) *v1.Service {
+func (e *KindClient) buildClientService(nacos *nacosgroupv1alpha1.Nacos) *v1.Service {
 	labels := e.generateLabels(nacos.Name, NACOS)
 	labels = e.MergeLabels(nacos.Labels, labels)
 
@@ -235,7 +235,7 @@ func (e *KindClient) buildClientService(nacos *harmonycloudcnv1alpha1.Nacos) *v1
 	return svc
 }
 
-func (e *KindClient) buildStatefulset(nacos *harmonycloudcnv1alpha1.Nacos) *appv1.StatefulSet {
+func (e *KindClient) buildStatefulset(nacos *nacosgroupv1alpha1.Nacos) *appv1.StatefulSet {
 	// 生成label
 	labels := e.generateLabels(nacos.Name, NACOS)
 	// 合并cr中原有的label
@@ -315,9 +315,8 @@ func (e *KindClient) buildStatefulset(nacos *harmonycloudcnv1alpha1.Nacos) *appv
 					Affinity:     nacos.Spec.Affinity,
 					Containers: []v1.Container{
 						{
-							Command: []string{"sh", "-c", "&&bin/docker-startup.sh"},
-							Name:    nacos.Name,
-							Image:   nacos.Spec.Image,
+							Name:  nacos.Name,
+							Image: nacos.Spec.Image,
 							Ports: []v1.ContainerPort{
 								{
 									Name:          "client",
@@ -414,7 +413,7 @@ func (e *KindClient) buildStatefulset(nacos *harmonycloudcnv1alpha1.Nacos) *appv
 	return ss
 }
 
-func (e *KindClient) buildConfigMap(nacos *harmonycloudcnv1alpha1.Nacos) *v1.ConfigMap {
+func (e *KindClient) buildConfigMap(nacos *nacosgroupv1alpha1.Nacos) *v1.ConfigMap {
 	labels := e.generateLabels(nacos.Name, NACOS)
 	labels = e.MergeLabels(nacos.Labels, labels)
 	data := make(map[string]string)
@@ -434,7 +433,7 @@ func (e *KindClient) buildConfigMap(nacos *harmonycloudcnv1alpha1.Nacos) *v1.Con
 	return &cm
 }
 
-func (e *KindClient) buildDefaultConfigMap(nacos *harmonycloudcnv1alpha1.Nacos) *v1.ConfigMap {
+func (e *KindClient) buildDefaultConfigMap(nacos *nacosgroupv1alpha1.Nacos) *v1.ConfigMap {
 	labels := e.generateLabels(nacos.Name, NACOS)
 	labels = e.MergeLabels(nacos.Labels, labels)
 	data := make(map[string]string)
@@ -500,7 +499,7 @@ func (e *KindClient) buildDefaultConfigMap(nacos *harmonycloudcnv1alpha1.Nacos) 
 	return &cm
 }
 
-func (e *KindClient) buildStatefulsetCluster(nacos *harmonycloudcnv1alpha1.Nacos, ss *appv1.StatefulSet) *appv1.StatefulSet {
+func (e *KindClient) buildStatefulsetCluster(nacos *nacosgroupv1alpha1.Nacos, ss *appv1.StatefulSet) *appv1.StatefulSet {
 	ss.Spec.ServiceName = e.generateHeadlessSvcName(nacos)
 	serivce := ""
 	serivceNoPort := ""
@@ -521,7 +520,7 @@ func (e *KindClient) buildStatefulsetCluster(nacos *harmonycloudcnv1alpha1.Nacos
 	return ss
 }
 
-func (e *KindClient) buildHeadlessServiceCluster(svc *v1.Service, nacos *harmonycloudcnv1alpha1.Nacos) *v1.Service {
+func (e *KindClient) buildHeadlessServiceCluster(svc *v1.Service, nacos *nacosgroupv1alpha1.Nacos) *v1.Service {
 	svc.Spec.ClusterIP = "None"
 	svc.Name = e.generateHeadlessSvcName(nacos)
 	return svc

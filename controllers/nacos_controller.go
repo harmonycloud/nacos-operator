@@ -21,7 +21,7 @@ import (
 	"reflect"
 	"time"
 
-	"harmonycloud.cn/nacos-operator/pkg/service/operator"
+	"nacos.io/nacos-operator/pkg/service/operator"
 
 	"github.com/go-logr/logr"
 	v1 "k8s.io/api/apps/v1"
@@ -31,9 +31,9 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
 
-	harmonycloudcnv1alpha1 "harmonycloud.cn/nacos-operator/api/v1alpha1"
+	nacosgroupv1alpha1 "nacos.io/nacos-operator/api/v1alpha1"
 
-	myErrors "harmonycloud.cn/nacos-operator/pkg/errors"
+	myErrors "nacos.io/nacos-operator/pkg/errors"
 )
 
 // NacosReconciler reconciles a Nacos object
@@ -44,15 +44,15 @@ type NacosReconciler struct {
 	OperaterClient *operator.OperatorClient
 }
 
-// +kubebuilder:rbac:groups=harmonycloud.cn,resources=nacos,verbs=get;list;watch;create;update;patch;delete
-// +kubebuilder:rbac:groups=harmonycloud.cn,resources=nacos/status,verbs=get;update;patch
-type reconcileFun func(nacos *harmonycloudcnv1alpha1.Nacos)
+// +kubebuilder:rbac:groups=nacos.io,resources=nacos,verbs=get;list;watch;create;update;patch;delete
+// +kubebuilder:rbac:groups=nacos.io,resources=nacos/status,verbs=get;update;patch
+type reconcileFun func(nacos *nacosgroupv1alpha1.Nacos)
 
 func (r *NacosReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 	_ = context.Background()
 	_ = r.Log.WithValues("nacos", req.NamespacedName)
 
-	instance := &harmonycloudcnv1alpha1.Nacos{}
+	instance := &nacosgroupv1alpha1.Nacos{}
 	err := r.Client.Get(context.TODO(), req.NamespacedName, instance)
 	if err != nil {
 		if k8sErrors.IsNotFound(err) {
@@ -73,7 +73,7 @@ func (r *NacosReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 
 }
 
-func (r *NacosReconciler) ReconcileWork(instance *harmonycloudcnv1alpha1.Nacos) bool {
+func (r *NacosReconciler) ReconcileWork(instance *nacosgroupv1alpha1.Nacos) bool {
 	// 处理全局异常处理中的异常
 	defer func() {
 		if err := recover(); err != nil {
@@ -114,13 +114,13 @@ func filterByLabel(label map[string]string) bool {
 
 func (r *NacosReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
-		For(&harmonycloudcnv1alpha1.Nacos{}).
+		For(&nacosgroupv1alpha1.Nacos{}).
 		Owns(&v1.StatefulSet{}).
 		Complete(r)
 }
 
 // 全局异常处理
-func (r *NacosReconciler) globalExceptHandle(err interface{}, instance *harmonycloudcnv1alpha1.Nacos) {
+func (r *NacosReconciler) globalExceptHandle(err interface{}, instance *nacosgroupv1alpha1.Nacos) {
 	if reflect.TypeOf(err) == reflect.TypeOf(myErrors.NewErrMsg("")) {
 		myerr := err.(*myErrors.Err)
 		r.Log.V(0).Info("painc", "code", myerr.Code, "msg", myerr.Msg)
@@ -131,7 +131,7 @@ func (r *NacosReconciler) globalExceptHandle(err interface{}, instance *harmonyc
 		}
 
 		// 超时3分钟如果还未成功就显示异常
-		if instance.Status.Phase != harmonycloudcnv1alpha1.PhaseCreating ||
+		if instance.Status.Phase != nacosgroupv1alpha1.PhaseCreating ||
 			instance.CreationTimestamp.Add(time.Minute*3).Before(time.Now()) {
 			r.OperaterClient.StatusClient.UpdateExceptionStatus(instance, myerr)
 		}

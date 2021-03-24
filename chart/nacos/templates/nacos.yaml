@@ -1,4 +1,4 @@
-apiVersion: harmonycloud.cn/v1alpha1
+apiVersion: nacos.io/v1alpha1
 kind: Nacos
 metadata:
   name: {{ include "nacos.fullname" . }}

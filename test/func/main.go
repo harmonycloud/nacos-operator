@@ -10,8 +10,8 @@ import (
 
 	"k8s.io/client-go/kubernetes"
 
-	nacosClient "harmonycloud.cn/nacos-operator/pkg/service/nacos"
-	"harmonycloud.cn/nacos-operator/test/e2e/util"
+	nacosClient "nacos.io/nacos-operator/pkg/service/nacos"
+	"nacos.io/nacos-operator/test/e2e/util"
 )
 
 var namespace = "default"

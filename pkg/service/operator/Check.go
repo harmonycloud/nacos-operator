@@ -6,14 +6,14 @@ import (
 	corev1 "k8s.io/api/core/v1"
 
 	log "github.com/go-logr/logr"
-	harmonycloudcnv1alpha1 "harmonycloud.cn/nacos-operator/api/v1alpha1"
-	myErrors "harmonycloud.cn/nacos-operator/pkg/errors"
-	"harmonycloud.cn/nacos-operator/pkg/service/k8s"
-	nacosClient "harmonycloud.cn/nacos-operator/pkg/service/nacos"
+	nacosgroupv1alpha1 "nacos.io/nacos-operator/api/v1alpha1"
+	myErrors "nacos.io/nacos-operator/pkg/errors"
+	"nacos.io/nacos-operator/pkg/service/k8s"
+	nacosClient "nacos.io/nacos-operator/pkg/service/nacos"
 )
 
 type ICheckClient interface {
-	Check(nacos *harmonycloudcnv1alpha1.Nacos)
+	Check(nacos *nacosgroupv1alpha1.Nacos)
 }
 
 type CheckClient struct {
@@ -29,7 +29,7 @@ func NewCheckClient(logger log.Logger, k8sService k8s.Services) *CheckClient {
 	}
 }
 
-func (c *CheckClient) CheckKind(nacos *harmonycloudcnv1alpha1.Nacos) []corev1.Pod {
+func (c *CheckClient) CheckKind(nacos *nacosgroupv1alpha1.Nacos) []corev1.Pod {
 	// 保证ss数量和cr副本数匹配
 	ss, err := c.k8sService.GetStatefulSet(nacos.Namespace, nacos.Name)
 	myErrors.EnsureNormal(err)
@@ -49,9 +49,9 @@ func (c *CheckClient) CheckKind(nacos *harmonycloudcnv1alpha1.Nacos) []corev1.Po
 	return pods
 }
 
-func (c *CheckClient) CheckNacos(nacos *harmonycloudcnv1alpha1.Nacos, pods []corev1.Pod) {
+func (c *CheckClient) CheckNacos(nacos *nacosgroupv1alpha1.Nacos, pods []corev1.Pod) {
 	leader := ""
-	nacos.Status.Conditions = []harmonycloudcnv1alpha1.Condition{}
+	nacos.Status.Conditions = []nacosgroupv1alpha1.Condition{}
 	// 检查nacos是否访问通
 	for _, pod := range pods {
 		servers, err := c.nacosClient.GetClusterNodes(pod.Status.PodIP)
@@ -70,7 +70,7 @@ func (c *CheckClient) CheckNacos(nacos *harmonycloudcnv1alpha1.Nacos, pods []cor
 			nacos.Status.Version = svc.ExtendInfo.Version
 		}
 
-		condition := harmonycloudcnv1alpha1.Condition{
+		condition := nacosgroupv1alpha1.Condition{
 			Status:   "true",
 			Instance: pod.Status.PodIP,
 			PodName:  pod.Name,
@@ -86,7 +86,7 @@ func (c *CheckClient) CheckNacos(nacos *harmonycloudcnv1alpha1.Nacos, pods []cor
 			if leaderSplit[0] == pod.Name {
 				condition.Type = "leader"
 			} else {
-				condition.Type = "Followers"
+				condition.Type = "follower"
 			}
 		}
 		nacos.Status.Conditions = append(nacos.Status.Conditions, condition)

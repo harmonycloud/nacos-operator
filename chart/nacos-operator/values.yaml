@@ -8,7 +8,7 @@ image:
   repository: registry.cn-hangzhou.aliyuncs.com/shenkonghui/nacos-operator
   pullPolicy: Always
   # Overrides the image tag whose default is the chart appVersion.
-  tag: "dev"
+  tag: "v1.0"
 
 imagePullSecrets: []
 nameOverride: ""

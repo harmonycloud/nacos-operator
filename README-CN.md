@@ -20,7 +20,7 @@ kubectl apply -f chart/nacos-operator/nacos-operator-all.yaml
 查看cr文件
 ```
 cat config/samples/nacos.yaml
-apiVersion: harmonycloud.cn/v1alpha1
+apiVersion: nacos.io/v1alpha1
 kind: Nacos
 metadata:
   name: nacos
@@ -62,7 +62,7 @@ make demo clear=true
 ```
 cat config/samples/nacos_cluster.yaml
 
-apiVersion: harmonycloud.cn/v1alpha1
+apiVersion: nacos.io/v1alpha1
 kind: Nacos
 metadata:
   name: nacos
@@ -148,7 +148,7 @@ make demo clear=true
 ### 数据库配置
 embedded数据库
 ```
-apiVersion: harmonycloud.cn/v1alpha1
+apiVersion: nacos.io/v1alpha1
 kind: Nacos
 metadata:
   name: nacos
@@ -168,7 +168,7 @@ spec:
 
 mysql数据库
 ```
-apiVersion: harmonycloud.cn/v1alpha1
+apiVersion: nacos.io/v1alpha1
 kind: Nacos
 metadata:
   name: nacos
@@ -188,7 +188,7 @@ spec:
 1. 通过环境变量配置 兼容nacos-docker项目， https://github.com/nacos-group/nacos-docker
    
     ```
-    apiVersion: harmonycloud.cn/v1alpha1
+    apiVersion: nacos.io/v1alpha1
     kind: Nacos
     metadata:
       name: nacos
@@ -211,7 +211,7 @@ spec:
     支持自定义配置文件，spec.config 会直接映射成custom.properties文件
 
     ```
-    apiVersion: harmonycloud.cn/v1alpha1
+    apiVersion: nacos.io/v1alpha1
     kind: Nacos
     metadata:
       name: nacos

@@ -2,11 +2,11 @@ package operator
 
 import (
 	log "github.com/go-logr/logr"
-	harmonycloudcnv1alpha1 "harmonycloud.cn/nacos-operator/api/v1alpha1"
-	myErrors "harmonycloud.cn/nacos-operator/pkg/errors"
-	"harmonycloud.cn/nacos-operator/pkg/service/k8s"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/kubernetes"
+	nacosgroupv1alpha1 "nacos.io/nacos-operator/api/v1alpha1"
+	myErrors "nacos.io/nacos-operator/pkg/errors"
+	"nacos.io/nacos-operator/pkg/service/k8s"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
@@ -38,7 +38,7 @@ func NewOperatorClient(logger log.Logger, clientset *kubernetes.Clientset, s *ru
 	}
 }
 
-func (c *OperatorClient) MakeEnsure(nacos *harmonycloudcnv1alpha1.Nacos) {
+func (c *OperatorClient) MakeEnsure(nacos *nacosgroupv1alpha1.Nacos) {
 	// 验证CR字段
 	c.KindClient.ValidationField(nacos)
 
@@ -57,22 +57,22 @@ func (c *OperatorClient) MakeEnsure(nacos *harmonycloudcnv1alpha1.Nacos) {
 	}
 }
 
-func (c *OperatorClient) PreCheck(nacos *harmonycloudcnv1alpha1.Nacos) {
+func (c *OperatorClient) PreCheck(nacos *nacosgroupv1alpha1.Nacos) {
 	switch nacos.Status.Phase {
-	case harmonycloudcnv1alpha1.PhaseFailed:
+	case nacosgroupv1alpha1.PhaseFailed:
 		// 失败，需要修复
 		c.HealClient.MakeHeal(nacos)
-	case harmonycloudcnv1alpha1.PhaseNone:
+	case nacosgroupv1alpha1.PhaseNone:
 		// 初始化
-		nacos.Status.Phase = harmonycloudcnv1alpha1.PhaseCreating
+		nacos.Status.Phase = nacosgroupv1alpha1.PhaseCreating
 		panic(myErrors.New(myErrors.CODE_NORMAL, ""))
-	case harmonycloudcnv1alpha1.PhaseScale:
+	case nacosgroupv1alpha1.PhaseScale:
 	default:
 		// TODO
 	}
 }
 
-func (c *OperatorClient) CheckAndMakeHeal(nacos *harmonycloudcnv1alpha1.Nacos) {
+func (c *OperatorClient) CheckAndMakeHeal(nacos *nacosgroupv1alpha1.Nacos) {
 
 	// 检查kind
 	pods := c.CheckClient.CheckKind(nacos)
@@ -80,6 +80,6 @@ func (c *OperatorClient) CheckAndMakeHeal(nacos *harmonycloudcnv1alpha1.Nacos) {
 	c.CheckClient.CheckNacos(nacos, pods)
 }
 
-func (c *OperatorClient) UpdateStatus(nacos *harmonycloudcnv1alpha1.Nacos) {
+func (c *OperatorClient) UpdateStatus(nacos *nacosgroupv1alpha1.Nacos) {
 	c.StatusClient.UpdateStatusRunning(nacos)
 }
