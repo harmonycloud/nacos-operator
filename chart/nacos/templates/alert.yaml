@@ -15,7 +15,6 @@ spec:
       labels:
         severity: critical
       annotations:
-        product: harmonycloud
         service: metrics
         summary: "Instance {{`{{ $labels.instance }}`}} "
         description: "nacos down"
@@ -25,7 +24,6 @@ spec:
       labels:
         severity: critical
       annotations:
-        product: harmonycloud
         service: metrics
         summary: "Instance {{`{{ $labels.instance }}`}} "
         description: "nacos db exception"
@@ -35,7 +33,6 @@ spec:
       labels:
         severity: critical
       annotations:
-        product: harmonycloud
         service: metrics
         summary: "Instance {{`{{ $labels.instance }}`}} "
         description: "nacos disk exception"
@@ -45,7 +42,6 @@ spec:
       labels:
         severity: critical
       annotations:
-        product: harmonycloud
         service: metrics
         summary: "Instance {{`{{ $labels.instance }}`}} "
         description: "nacos beat exception"
