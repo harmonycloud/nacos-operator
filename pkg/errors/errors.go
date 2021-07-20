@@ -5,7 +5,6 @@ import (
 	"fmt"
 )
 
-
 type Err struct {
 	Code int
 	Msg  string
@@ -22,6 +21,18 @@ func EnsureNormal(err error) {
 	}
 }
 
+func EnsureNormalMyError(err error, code int) {
+	if err != nil {
+		panic(New(code, err.Error()))
+	}
+}
+
+func EnsureEqual(i1 interface{}, i2 interface{}, code int, msg ...interface{}) {
+	if i1 != i2 {
+		panic(New(code, "msg: %v, %v is not equal %v", msg, i1, i2))
+	}
+}
+
 func EnsureNormalMsgf(err error, format string, a ...interface{}) {
 	if err != nil {
 		panic(err)
@@ -29,7 +40,7 @@ func EnsureNormalMsgf(err error, format string, a ...interface{}) {
 }
 
 func New(code int, format string, a ...interface{}) *Err {
-	msg := fmt.Sprintf(format, a)
+	msg := fmt.Sprintf(format, a...)
 	if len(a) == 0 {
 		msg = fmt.Sprint(format, a)
 	}
@@ -53,7 +64,7 @@ func NewErrMsg(err string) *Err {
 }
 
 func NewErrfMsgf(format string, a ...interface{}) *Err {
-	msg := fmt.Sprintf(format, a)
+	msg := fmt.Sprintf(format, a...)
 	if len(a) == 0 {
 		msg = fmt.Sprint(format, a)
 	}

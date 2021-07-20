@@ -19,7 +19,7 @@ type services struct {
 }
 
 // New returns a new Kubernetes service.
-func New(kubecli kubernetes.Interface, logger log.Logger) Services {
+func NewK8sService(kubecli kubernetes.Interface, logger log.Logger) Services {
 	return &services{
 		ConfigMap:   NewConfigMapService(kubecli, logger),
 		StatefulSet: NewStatefulSetService(kubecli, logger),

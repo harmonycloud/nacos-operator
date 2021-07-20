@@ -1,0 +1,34 @@
+type: cluster
+
+replicaCount: 3
+
+image:
+  repository: nacos/nacos-server
+  pullPolicy: IfNotPresent
+  tag: "1.4.1"
+
+
+enableEmbedded: true
+
+imagePullSecrets: []
+nameOverride: ""
+fullnameOverride: ""
+
+storage:
+  enabled: false
+  storageSize: 1Gi
+  storageClassName: default
+
+resources: {}
+  # limits:
+  #   cpu: 100m
+  #   memory: 128Mi
+  # requests:
+  #   cpu: 100m
+  #   memory: 128Mi
+
+nodeSelector: {}
+
+tolerations: []
+
+affinity: {}

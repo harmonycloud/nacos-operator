@@ -1,0 +1,17 @@
+apiVersion: harmonycloud.cn/v1alpha1
+kind: Nacos
+metadata:
+  name: nacos
+spec:
+  type: cluster
+  image: nacos/nacos-server:1.4.1
+  replicas: 3
+  database:
+    type: mysql
+    mysqlHost: mysql
+    mysqlDb: nacos
+    mysqlUser: root
+    mysqlPort: "3306"
+    mysqlPassword: "123456"
+  config: |
+    management.endpoints.web.exposure.include=*

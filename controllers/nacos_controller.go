@@ -19,11 +19,14 @@ package controllers
 import (
 	"context"
 	"reflect"
+	"time"
+
+	"harmonycloud.cn/nacos-operator/pkg/service/operator"
 
 	"github.com/go-logr/logr"
+	v1 "k8s.io/api/apps/v1"
 	k8sErrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/klog"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/reconcile"
@@ -31,19 +34,19 @@ import (
 	harmonycloudcnv1alpha1 "harmonycloud.cn/nacos-operator/api/v1alpha1"
 
 	myErrors "harmonycloud.cn/nacos-operator/pkg/errors"
-	"harmonycloud.cn/nacos-operator/pkg/service/operator"
 )
 
 // NacosReconciler reconciles a Nacos object
 type NacosReconciler struct {
 	client.Client
-	Log     logr.Logger
-	Scheme  *runtime.Scheme
-	Ensurer *operator.ClientEnsurer
+	Log            logr.Logger
+	Scheme         *runtime.Scheme
+	OperaterClient *operator.OperatorClient
 }
 
-// +kubebuilder:rbac:groups=harmonycloud.cn.harmonycloud.cn,resources=nacos,verbs=get;list;watch;create;update;patch;delete
-// +kubebuilder:rbac:groups=harmonycloud.cn.harmonycloud.cn,resources=nacos/status,verbs=get;update;patch
+// +kubebuilder:rbac:groups=harmonycloud.cn,resources=nacos,verbs=get;list;watch;create;update;patch;delete
+// +kubebuilder:rbac:groups=harmonycloud.cn,resources=nacos/status,verbs=get;update;patch
+type reconcileFun func(nacos *harmonycloudcnv1alpha1.Nacos)
 
 func (r *NacosReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 	_ = context.Background()
@@ -58,31 +61,82 @@ func (r *NacosReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 		return reconcile.Result{}, err
 	}
 
-	// 全局处理异常
+	// 工作逻辑入口 , 引发了painc，返回默认false，重新插入队列,5秒继续执行
+	result := r.ReconcileWork(instance)
+	if result == false {
+		return reconcile.Result{
+			Requeue:      !result,
+			RequeueAfter: time.Second * 15}, nil
+	} else {
+		return reconcile.Result{}, nil
+	}
+
+}
+
+func (r *NacosReconciler) ReconcileWork(instance *harmonycloudcnv1alpha1.Nacos) bool {
+	// 处理全局异常处理中的异常
 	defer func() {
 		if err := recover(); err != nil {
-			r.globalExceptHandle(err)
+			r.Log.Error(err.(error), "unknow error")
 		}
 	}()
 
-	// 保证资源已经创建
-	r.Ensurer.Ensure(instance)
+	// 全局处理异常
+	defer func() {
+		if err := recover(); err != nil {
+			// 可处理的异常
+			r.globalExceptHandle(err, instance)
+		}
+	}()
 
-	return ctrl.Result{}, nil
+	for _, fun := range []reconcileFun{
+		r.OperaterClient.PreCheck,
+		// 保证资源能够创建
+		r.OperaterClient.MakeEnsure,
+		// 检查并保障
+		r.OperaterClient.CheckAndMakeHeal,
+		// 保存状态
+		r.OperaterClient.UpdateStatus,
+	} {
+		fun(instance)
+	}
+	return true
+}
+
+func filterByLabel(label map[string]string) bool {
+	v := label["middleware"]
+	if v != "nacos" {
+		return false
+	} else {
+		return true
+	}
 }
 
 func (r *NacosReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&harmonycloudcnv1alpha1.Nacos{}).
+		Owns(&v1.StatefulSet{}).
 		Complete(r)
 }
 
 // 全局异常处理
-func (r *NacosReconciler) globalExceptHandle(err interface{}) {
+func (r *NacosReconciler) globalExceptHandle(err interface{}, instance *harmonycloudcnv1alpha1.Nacos) {
 	if reflect.TypeOf(err) == reflect.TypeOf(myErrors.NewErrMsg("")) {
 		myerr := err.(*myErrors.Err)
-		klog.Warningf("painc msg[%s] code[%d]", myerr.Msg, myerr.Code)
+		r.Log.V(0).Info("painc", "code", myerr.Code, "msg", myerr.Msg)
+		switch myerr.Code {
+		case myErrors.CODE_NORMAL:
+			r.OperaterClient.StatusClient.UpdateStatus(instance)
+			return
+		}
+
+		// 超时3分钟如果还未成功就显示异常
+		if instance.Status.Phase != harmonycloudcnv1alpha1.PhaseCreating ||
+			instance.CreationTimestamp.Add(time.Minute*3).Before(time.Now()) {
+			r.OperaterClient.StatusClient.UpdateExceptionStatus(instance, myerr)
+		}
 	} else {
-		r.Log.Error(err.(error), "error")
+		// 未知的错误，把堆栈打印出来
+		r.Log.Error(err.(error), "unknow error")
 	}
 }

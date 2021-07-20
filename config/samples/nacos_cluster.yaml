@@ -1,0 +1,8 @@
+apiVersion: harmonycloud.cn/v1alpha1
+kind: Nacos
+metadata:
+  name: nacos
+spec:
+  type: cluster
+  image: nacos/nacos-server:1.4.1
+  replicas: 3

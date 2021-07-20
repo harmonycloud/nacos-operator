@@ -17,6 +17,7 @@ type ConfigMap interface {
 	CreateConfigMap(namespace string, configMap *corev1.ConfigMap) error
 	UpdateConfigMap(namespace string, configMap *corev1.ConfigMap) error
 	CreateOrUpdateConfigMap(namespace string, np *corev1.ConfigMap) error
+	CreateIfNotExistsConfigMap(namespace string, np *corev1.ConfigMap) error
 	DeleteConfigMap(namespace string, name string) error
 	ListConfigMaps(namespace string) (*corev1.ConfigMapList, error)
 }
@@ -50,6 +51,17 @@ func (p *ConfigMapService) CreateConfigMap(namespace string, configMap *corev1.C
 		return err
 	}
 	p.logger.WithValues("namespace", namespace).WithValues("configMap", configMap.Name).Info("configMap created")
+	return nil
+}
+func (p *ConfigMapService) CreateIfNotExistsConfigMap(namespace string, configMap *corev1.ConfigMap) error {
+	_, err := p.kubeClient.CoreV1().ConfigMaps(namespace).Update(context.TODO(), configMap, metav1.UpdateOptions{})
+	if err != nil {
+		// If no resource we need to create.
+		if errors.IsNotFound(err) {
+			return p.CreateConfigMap(namespace, configMap)
+		}
+		return err
+	}
 	return nil
 }
 func (p *ConfigMapService) UpdateConfigMap(namespace string, configMap *corev1.ConfigMap) error {

@@ -22,6 +22,7 @@ type StatefulSet interface {
 	CreateOrUpdateStatefulSet(namespace string, statefulSet *appsv1.StatefulSet) error
 	DeleteStatefulSet(namespace string, name string) error
 	ListStatefulSets(namespace string) (*appsv1.StatefulSetList, error)
+	GetStatefulSetReadPod(namespace, name string) ([]corev1.Pod, error)
 }
 
 // StatefulSetService is the service account service implementation using API calls to kubernetes.
@@ -60,6 +61,26 @@ func (s *StatefulSetService) GetStatefulSetPods(namespace, name string) (*corev1
 	}
 	selector := strings.Join(labels, ",")
 	return s.kubeClient.CoreV1().Pods(namespace).List(context.TODO(), metav1.ListOptions{LabelSelector: selector})
+}
+
+func (s *StatefulSetService) GetStatefulSetReadPod(namespace, name string) ([]corev1.Pod, error) {
+	var podlist []corev1.Pod
+	podList, err := s.GetStatefulSetPods(namespace, name)
+	if err != nil {
+		return podlist, err
+	}
+	num := 0
+	for _, pod := range podList.Items {
+		if len(pod.Status.Conditions) != 4 {
+			continue
+		}
+		if pod.Status.Conditions[1].Type == "Ready" &&
+			pod.Status.Conditions[1].Status == "True" {
+			num = num + 1
+			podlist = append(podlist, pod)
+		}
+	}
+	return podlist, nil
 }
 
 // CreateStatefulSet will create the given statefulset
