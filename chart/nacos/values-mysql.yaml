@@ -7,28 +7,35 @@ image:
   pullPolicy: IfNotPresent
   tag: "1.4.1"
 
-
-enableEmbedded: false
-
 imagePullSecrets: []
 nameOverride: ""
 fullnameOverride: ""
 
+database:
+  type: mysql
+  mysqlHost: "mysql"
+  mysqlPort: 3306
+  mysqlUser: root
+  mysqlDb: nacos
+  mysqlPassword: "123456"
+
+volume:
+  enabled: false
+
+env:
+- name: JVM_XMX
+  value: 2g
+
 config: |
-    spring.datasource.platform=mysql
-    db.num=1
-    db.url.0=jdbc:mysql://mysql:3306/nacos?characterEncoding=utf8&connectTimeout=1000&socketTimeout=3000&autoReconnect=true
-    db.user=root
-    db.password=123456
+  management.endpoints.web.exposure.include=*
 
-
-resources: {}
-  # limits:
-  #   cpu: 100m
-  #   memory: 128Mi
-  # requests:
-  #   cpu: 100m
-  #   memory: 128Mi
+resources:
+  limits:
+    cpu: 1
+    memory: 2048Mi
+  requests:
+    cpu: 1000m
+    memory: 2048Mi
 
 nodeSelector: {}
 

@@ -1,4 +1,4 @@
-module harmonycloud.cn/nacos-operator
+module nacos.io/nacos-operator
 
 go 1.13
 

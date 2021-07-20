@@ -8,9 +8,9 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	log "github.com/go-logr/logr"
-	harmonycloudcnv1alpha1 "harmonycloud.cn/nacos-operator/api/v1alpha1"
-	myErrors "harmonycloud.cn/nacos-operator/pkg/errors"
-	"harmonycloud.cn/nacos-operator/pkg/service/k8s"
+	nacosgroupv1alpha1 "nacos.io/nacos-operator/api/v1alpha1"
+	myErrors "nacos.io/nacos-operator/pkg/errors"
+	"nacos.io/nacos-operator/pkg/service/k8s"
 )
 
 type IStatusClient interface {
@@ -29,23 +29,23 @@ func NewStatusClient(logger log.Logger, k8sService k8s.Services, client client.C
 }
 
 // 更新状态
-func (c *StatusClient) UpdateStatusRunning(nacos *harmonycloudcnv1alpha1.Nacos) {
+func (c *StatusClient) UpdateStatusRunning(nacos *nacosgroupv1alpha1.Nacos) {
 	c.updateLastEvent(nacos, 200, "", true)
-	nacos.Status.Phase = harmonycloudcnv1alpha1.PhaseRunning
+	nacos.Status.Phase = nacosgroupv1alpha1.PhaseRunning
 	// TODO
 	myErrors.EnsureNormal(c.client.Status().Update(context.TODO(), nacos))
 }
 
 // 更新状态
-func (c *StatusClient) UpdateStatus(nacos *harmonycloudcnv1alpha1.Nacos) {
+func (c *StatusClient) UpdateStatus(nacos *nacosgroupv1alpha1.Nacos) {
 	// TODO
 	myErrors.EnsureNormal(c.client.Status().Update(context.TODO(), nacos))
 }
 
-func (c *StatusClient) UpdateExceptionStatus(nacos *harmonycloudcnv1alpha1.Nacos, err *myErrors.Err) {
+func (c *StatusClient) UpdateExceptionStatus(nacos *nacosgroupv1alpha1.Nacos, err *myErrors.Err) {
 	c.updateLastEvent(nacos, err.Code, err.Msg, false)
 	// 设置为异常状态
-	nacos.Status.Phase = harmonycloudcnv1alpha1.PhaseFailed
+	nacos.Status.Phase = nacosgroupv1alpha1.PhaseFailed
 	e := c.client.Status().Update(context.TODO(), nacos)
 	if e != nil {
 		c.logger.V(-1).Info(e.Error())
@@ -55,14 +55,14 @@ func (c *StatusClient) UpdateExceptionStatus(nacos *harmonycloudcnv1alpha1.Nacos
 
 const EVENT_MAX_SIZE = 10
 
-func (c *StatusClient) updateLastEvent(nacos *harmonycloudcnv1alpha1.Nacos, code int, msg string, status bool) {
-	var event harmonycloudcnv1alpha1.Event
+func (c *StatusClient) updateLastEvent(nacos *nacosgroupv1alpha1.Nacos, code int, msg string, status bool) {
+	var event nacosgroupv1alpha1.Event
 	if len(nacos.Status.Event) > EVENT_MAX_SIZE {
 		nacos.Status.Event = append(nacos.Status.Event[:0], nacos.Status.Event[1:]...)
 
 	}
 	if len(nacos.Status.Event) == 0 {
-		event = harmonycloudcnv1alpha1.Event{
+		event = nacosgroupv1alpha1.Event{
 			Code: code,
 			FirstAppearTime: metav1.Time{
 				Time: time.Now()},
@@ -80,7 +80,7 @@ func (c *StatusClient) updateLastEvent(nacos *harmonycloudcnv1alpha1.Nacos, code
 		event.Message = msg
 		nacos.Status.Event[len(nacos.Status.Event)-1] = event
 	} else {
-		event = harmonycloudcnv1alpha1.Event{
+		event = nacosgroupv1alpha1.Event{
 			Code:    code,
 			Status:  status,
 			Message: msg,

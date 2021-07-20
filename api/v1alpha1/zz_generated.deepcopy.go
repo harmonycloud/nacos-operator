@@ -144,13 +144,7 @@ func (in *NacosSpec) DeepCopyInto(out *NacosSpec) {
 		*out = new(int32)
 		**out = **in
 	}
-	if in.Resource != nil {
-		in, out := &in.Resource, &out.Resource
-		*out = make(v1.ResourceList, len(*in))
-		for key, val := range *in {
-			(*out)[key] = val.DeepCopy()
-		}
-	}
+	in.Resources.DeepCopyInto(&out.Resources)
 	if in.Affinity != nil {
 		in, out := &in.Affinity, &out.Affinity
 		*out = new(v1.Affinity)

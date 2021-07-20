@@ -1,7 +1,9 @@
 package k8s
 
 import (
+	"bytes"
 	"context"
+	"encoding/json"
 	"fmt"
 	"strings"
 
@@ -118,8 +120,15 @@ func (s *StatefulSetService) CreateOrUpdateStatefulSet(namespace string, statefu
 	// Set the correct resource version to ensure we are on the latest version. This way the only valid
 	// namespace is our spec(https://github.com/kubernetes/community/blob/master/contributors/devel/api-conventions.md#concurrency-control-and-consistency),
 	// we will replace the current namespace state.
-	statefulSet.ResourceVersion = storedStatefulSet.ResourceVersion
-	return s.UpdateStatefulSet(namespace, statefulSet)
+
+	dAtA, _ := json.Marshal(storedStatefulSet.Spec.Template.Spec.Containers[0].Resources)
+	dAtB, _ := json.Marshal(statefulSet.Spec.Template.Spec.Containers[0].Resources)
+	if !bytes.Equal(dAtA, dAtB) ||
+		*statefulSet.Spec.Replicas != *storedStatefulSet.Spec.Replicas {
+		statefulSet.ResourceVersion = storedStatefulSet.ResourceVersion
+		return s.UpdateStatefulSet(namespace, statefulSet)
+	}
+	return nil
 }
 
 // DeleteStatefulSet will delete the statefulset

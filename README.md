@@ -21,7 +21,7 @@ kubectl apply -f chart/nacos-operator/nacos-operator-all.yaml
 View cr file
 ```
 cat config/samples/nacos.yaml
-apiVersion: harmonycloud.cn/v1alpha1
+apiVersion: nacos.io/v1alpha1
 kind: Nacos
 metadata:
   name: nacos
@@ -64,7 +64,7 @@ make demo clear=true
 ```
 cat config/samples/nacos_cluster.yaml
 
-apiVersion: harmonycloud.cn/v1alpha1
+apiVersion: nacos.io/v1alpha1
 kind: Nacos
 metadata:
   name: nacos
@@ -133,7 +133,7 @@ By configuring spec.type as standalone/cluster
 ### Database configuration
 embedded
 ```
-apiVersion: harmonycloud.cn/v1alpha1
+apiVersion: nacos.io/v1alpha1
 kind: Nacos
 metadata:
   name: nacos
@@ -153,7 +153,7 @@ spec:
 
 mysql
 ```
-apiVersion: harmonycloud.cn/v1alpha1
+apiVersion: nacos.io/v1alpha1
 kind: Nacos
 metadata:
   name: nacos
@@ -173,7 +173,7 @@ spec:
 1. Configure through environment variables, compatible with nacos-docker project, https://github.com/nacos-group/nacos-docker
 
     ```
-    apiVersion: harmonycloud.cn/v1alpha1
+    apiVersion: nacos.io/v1alpha1
     kind: Nacos
     metadata:
       name: nacos
@@ -196,7 +196,7 @@ spec:
    Support custom configuration file, spec.config will be directly mapped to custom.properties file
 
     ```
-    apiVersion: harmonycloud.cn/v1alpha1
+    apiVersion: nacos.io/v1alpha1
     kind: Nacos
     metadata:
       name: nacos

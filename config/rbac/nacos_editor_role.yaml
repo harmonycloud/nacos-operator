@@ -5,7 +5,7 @@ metadata:
   name: nacos-editor-role
 rules:
 - apiGroups:
-  - harmonycloud.cn
+  - nacos.io
   resources:
   - nacos
   verbs:
@@ -17,7 +17,7 @@ rules:
   - update
   - watch
 - apiGroups:
-  - harmonycloud.cn
+  - nacos.io
   resources:
   - nacos/status
   verbs:

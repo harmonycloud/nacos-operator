@@ -12,22 +12,41 @@ metadata:
     app.kubernetes.io/version: "1.16.0"
     app.kubernetes.io/managed-by: Helm
 ---
-# Source: nacos-operator/templates/harmonycloud.cn_nacos.yaml
+# Source: nacos-operator/templates/nacos.io_nacos.yaml
 apiVersion: apiextensions.k8s.io/v1beta1
 kind: CustomResourceDefinition
 metadata:
   annotations:
     controller-gen.kubebuilder.io/version: v0.3.0
   creationTimestamp: null
-  name: nacos.harmonycloud.cn
+  name: nacos.nacos.io
 spec:
-  group: harmonycloud.cn
+  group: nacos.io
   names:
     kind: Nacos
     listKind: NacosList
     plural: nacos
     singular: nacos
   scope: Namespaced
+  additionalPrinterColumns:
+    - name: Replicas
+      type: string
+      JSONPath: .spec.replicas
+    - name: Ready
+      type: string
+      JSONPath: .status.phase
+    - name: type
+      type: string
+      JSONPath: .spec.type
+    - name: dbType
+      type: string
+      JSONPath: .spec.database.type
+    - name: Version
+      type: string
+      JSONPath: .status.version
+    - name: CreateTime
+      type: string
+      JSONPath: .metadata.creationTimestamp
   subresources:
     status: {}
   validation:
@@ -1225,7 +1244,7 @@ metadata:
   name: nacos-operator
 rules:
   - apiGroups:
-      - harmonycloud.cn
+      - nacos.io
     resources:
       - nacos
     verbs:
@@ -1237,7 +1256,7 @@ rules:
       - update
       - watch
   - apiGroups:
-      - harmonycloud.cn
+      - nacos.io
     resources:
       - nacos/status
     verbs:
@@ -1329,7 +1348,7 @@ spec:
         - name: nacos-operator
           securityContext:
             {}
-          image: "registry.cn-hangzhou.aliyuncs.com/shenkonghui/nacos-operator:dev"
+          image: "registry.cn-hangzhou.aliyuncs.com/shenkonghui/nacos-operator:v1.0"
           command: ["/manager"]
           args: ["--enable-leader-election"]
           imagePullPolicy: Always
