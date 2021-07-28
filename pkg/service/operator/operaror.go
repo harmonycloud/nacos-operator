@@ -47,11 +47,19 @@ func (c *OperatorClient) MakeEnsure(nacos *nacosgroupv1alpha1.Nacos) {
 		c.KindClient.EnsureConfigmap(nacos)
 		c.KindClient.EnsureStatefulset(nacos)
 		c.KindClient.EnsureService(nacos)
+		if nacos.Spec.Database.TypeDatabase == "mysql" {
+			c.KindClient.EnsureMysqlConfigMap(nacos)
+			c.KindClient.EnsureJob(nacos)
+		}
 	case TYPE_CLUSTER:
 		c.KindClient.EnsureConfigmap(nacos)
 		c.KindClient.EnsureStatefulsetCluster(nacos)
 		c.KindClient.EnsureHeadlessServiceCluster(nacos)
 		c.KindClient.EnsureClientService(nacos)
+		if nacos.Spec.Database.TypeDatabase == "mysql" {
+			c.KindClient.EnsureMysqlConfigMap(nacos)
+			c.KindClient.EnsureJob(nacos)
+		}
 	default:
 		panic(myErrors.New(myErrors.CODE_PARAMETER_ERROR, myErrors.MSG_PARAMETER_ERROT, "nacos.Spec.Type", nacos.Spec.Type))
 	}
@@ -73,7 +81,6 @@ func (c *OperatorClient) PreCheck(nacos *nacosgroupv1alpha1.Nacos) {
 }
 
 func (c *OperatorClient) CheckAndMakeHeal(nacos *nacosgroupv1alpha1.Nacos) {
-
 	// 检查kind
 	pods := c.CheckClient.CheckKind(nacos)
 	// 检查nacos

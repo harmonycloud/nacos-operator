@@ -2,7 +2,6 @@ package k8s
 
 import (
 	"context"
-
 	log "github.com/go-logr/logr"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/errors"
@@ -31,7 +30,7 @@ type ServiceService struct {
 
 // NewServiceService returns a new Service KubeService.
 func NewServiceService(kubeClient kubernetes.Interface, logger log.Logger) *ServiceService {
-	logger = logger.WithValues("service", "k8s.statefulSet")
+	logger = logger.WithValues("service", "k8s.service")
 	return &ServiceService{
 		kubeClient: kubeClient,
 		logger:     logger,

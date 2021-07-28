@@ -2,6 +2,9 @@ package operator
 
 import (
 	"fmt"
+	"io/ioutil"
+	batchv1 "k8s.io/api/batch/v1"
+	"path/filepath"
 	"strconv"
 
 	"k8s.io/apimachinery/pkg/runtime"
@@ -24,6 +27,9 @@ const TYPE_CLUSTER = "cluster"
 const NACOS = "nacos"
 const NACOS_PORT = 8848
 const RAFT_PORT = 7848
+
+// 导入的sql文件名称
+const SQL_FILE_NAME = "nacos-mysql.sql"
 
 var initScrit = `array=(%s)
 succ = 0
@@ -170,6 +176,173 @@ func (e *KindClient) EnsureConfigmap(nacos *nacosgroupv1alpha1.Nacos) {
 		cm := e.buildConfigMap(nacos)
 		myErrors.EnsureNormal(e.k8sService.CreateIfNotExistsConfigMap(nacos.Namespace, cm))
 	}
+}
+
+func (e *KindClient) EnsureMysqlConfigMap(nacos *nacosgroupv1alpha1.Nacos) {
+	cm := e.buildMysqlConfigMap(nacos)
+	myErrors.EnsureNormal(e.k8sService.CreateIfNotExistsConfigMap(nacos.Namespace, cm))
+}
+
+func (e *KindClient) EnsureJob(nacos *nacosgroupv1alpha1.Nacos) {
+	// 使用job执行SQL脚本的逻辑
+	job := e.buildJob(nacos)
+	myErrors.EnsureNormal(e.k8sService.CreateIfNotExistsJob(nacos.Namespace, job))
+}
+
+// buildSqlConfigMap 创建用于保存待导入的sql的configmap
+func (e *KindClient) buildMysqlConfigMap(nacos *nacosgroupv1alpha1.Nacos) *v1.ConfigMap {
+	labels := e.generateLabels(nacos.Name, NACOS)
+	labels = e.MergeLabels(nacos.Labels, labels)
+
+	// 创建ConfigMap用于保存sql语句
+	cm := &v1.ConfigMap{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      nacos.Name + "-mysql-sql-init",
+			Namespace: nacos.Namespace,
+			Labels:    labels,
+		},
+
+		Data: map[string]string{
+			"SQL_SCRIPT": readSql(SQL_FILE_NAME),
+		},
+	}
+	myErrors.EnsureNormal(controllerutil.SetControllerReference(nacos, cm, e.scheme))
+	return cm
+}
+
+func (e *KindClient) buildJob(nacos *nacosgroupv1alpha1.Nacos) *batchv1.Job {
+	labels := e.generateLabels(nacos.Name, NACOS)
+	labels = e.MergeLabels(nacos.Labels, labels)
+
+	// 创建Job用于向数据库中导入sql
+	job := &batchv1.Job{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      nacos.Name + "-mysql-sql-init",
+			Namespace: nacos.Namespace,
+			Labels:    labels,
+		},
+		Spec: batchv1.JobSpec{
+			Template: v1.PodTemplateSpec{
+				ObjectMeta: metav1.ObjectMeta{
+					Namespace: nacos.Namespace,
+				},
+				Spec: v1.PodSpec{
+					InitContainers: []v1.Container{
+						{
+							Name:  "mysql-check-host",
+							Image: "busybox:1.31",
+							Env: []v1.EnvVar{
+								{
+									Name:  "MYSQL_HOST",
+									Value: nacos.Spec.Database.MysqlHost,
+								},
+							},
+							// 先测试mysql是否启动成功
+							Command: []string{
+								"/bin/sh",
+								"-c",
+								"until nslookup \"${MYSQL_HOST}\"; do echo waiting for mysql...; sleep 2; done;",
+							},
+						},
+						{
+							Name:  "mysql-check-database",
+							Image: nacos.Spec.MysqlInitImage,
+							Env: []v1.EnvVar{
+								{
+									Name:  "MYSQL_HOST",
+									Value: nacos.Spec.Database.MysqlHost,
+								},
+								{
+									Name:  "MYSQL_DB",
+									Value: nacos.Spec.Database.MysqlDb,
+								},
+								{
+									Name:  "MYSQL_PORT",
+									Value: nacos.Spec.Database.MysqlPort,
+								},
+								{
+									Name:  "MYSQL_USER",
+									Value: nacos.Spec.Database.MysqlUser,
+								},
+								{
+									Name:  "MYSQL_PASS",
+									Value: nacos.Spec.Database.MysqlPassword,
+								},
+							},
+							// 判断数据库是否存在，不存在则创建
+							Command: []string{
+								"/bin/sh",
+								"-c",
+								"until mysql -u\"${MYSQL_USER}\" -p\"${MYSQL_PASS}\" -h\"${MYSQL_HOST}\" -P\"${MYSQL_PORT}\" -e\"create database if not exists \"${MYSQL_DB}\"\"; do echo waiting for database creation...; sleep 2; done;",
+							},
+						},
+					},
+					Containers: []v1.Container{
+						{
+							Name:  "mysql-sql-init",
+							Image: nacos.Spec.MysqlInitImage,
+							Env: []v1.EnvVar{
+								{
+									Name:  "MYSQL_HOST",
+									Value: nacos.Spec.Database.MysqlHost,
+								},
+								{
+									Name:  "MYSQL_DB",
+									Value: nacos.Spec.Database.MysqlDb,
+								},
+								{
+									Name:  "MYSQL_PORT",
+									Value: nacos.Spec.Database.MysqlPort,
+								},
+								{
+									Name:  "MYSQL_USER",
+									Value: nacos.Spec.Database.MysqlUser,
+								},
+								{
+									Name:  "MYSQL_PASS",
+									Value: nacos.Spec.Database.MysqlPassword,
+								},
+								{
+									Name: "SQL_SCRIPT",
+									ValueFrom: &v1.EnvVarSource{
+										ConfigMapKeyRef: &v1.ConfigMapKeySelector{
+											LocalObjectReference: v1.LocalObjectReference{
+												Name: nacos.Name + "-mysql-sql-init",
+											},
+											Key: "SQL_SCRIPT",
+										},
+									},
+									//Value: readSql(SQL_FILE_NAME),
+								},
+							},
+							// 导入nacos-mysql.sql中的数据
+							Command: []string{
+								"/bin/sh",
+								"-c",
+								"mysql -u\"${MYSQL_USER}\" -p\"${MYSQL_PASS}\" -h\"${MYSQL_HOST}\" -P\"${MYSQL_PORT}\" -D\"${MYSQL_DB}\" -e\"${SQL_SCRIPT}\";",
+							},
+						},
+					},
+					RestartPolicy: "Never",
+				},
+			},
+		},
+	}
+
+	myErrors.EnsureNormal(controllerutil.SetControllerReference(nacos, job, e.scheme))
+	return job
+}
+
+func readSql(sqlFileName string) string {
+	// abspath：项目的根路径
+	abspath, _ := filepath.Abs("")
+	bytes, err := ioutil.ReadFile(abspath + "/config/sql/" + sqlFileName)
+	if err != nil {
+		fmt.Printf("read sql file failed, err: %s", err.Error())
+		return ""
+	}
+
+	return string(bytes)
 }
 
 func (e *KindClient) buildService(nacos *nacosgroupv1alpha1.Nacos) *v1.Service {

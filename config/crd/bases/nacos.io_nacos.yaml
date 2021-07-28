@@ -8,6 +8,25 @@ metadata:
   creationTimestamp: null
   name: nacos.nacos.io
 spec:
+  additionalPrinterColumns:
+  - JSONPath: .spec.replicas
+    name: Replicas
+    type: string
+  - JSONPath: .status.phase
+    name: Ready
+    type: string
+  - JSONPath: .spec.type
+    name: type
+    type: string
+  - JSONPath: .spec.database.type
+    name: dbType
+    type: string
+  - JSONPath: .status.version
+    name: Version
+    type: string
+  - JSONPath: .metadata.creationTimestamp
+    name: CreateTime
+    type: string
   group: nacos.io
   names:
     kind: Nacos
@@ -15,25 +34,6 @@ spec:
     plural: nacos
     singular: nacos
   scope: Namespaced
-  additionalPrinterColumns:
-    - name: Replicas
-      type: string
-      JSONPath: .spec.replicas
-    - name: Ready
-      type: string
-      JSONPath: .status.phase
-    - name: type
-      type: string
-      JSONPath: .spec.type
-    - name: dbType
-      type: string
-      JSONPath: .spec.database.type
-    - name: Version
-      type: string
-      JSONPath: .status.version
-    - name: CreateTime
-      type: string
-      JSONPath: .metadata.creationTimestamp
   subresources:
     status: {}
   validation:
@@ -872,6 +872,8 @@ spec:
                   format: int32
                   type: integer
               type: object
+            mysqlInitImage:
+              type: string
             nodeSelector:
               additionalProperties:
                 type: string

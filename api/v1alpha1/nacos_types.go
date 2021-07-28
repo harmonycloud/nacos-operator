@@ -40,6 +40,7 @@ type NacosSpec struct {
 	LivenessProbe  *v1.Probe               `json:"livenessProbe,omitempty" protobuf:"bytes,10,opt,name=livenessProbe"`
 	ReadinessProbe *v1.Probe               `json:"readinessProbe,omitempty" protobuf:"bytes,11,opt,name=readinessProbe"`
 	Env            []v1.EnvVar             `json:"env,omitempty" patchStrategy:"merge" patchMergeKey:"name" protobuf:"bytes,7,rep,name=env"`
+	MysqlInitImage string                  `json:"mysqlInitImage,omitempty"`
 
 	// 自定义配置
 	// 部署模式
@@ -83,6 +84,12 @@ type NacosStatus struct {
 // +kubebuilder:subresource:status
 
 // Nacos is the Schema for the nacos API
+// +kubebuilder:printcolumn:name="Replicas",type=string,JSONPath=`.spec.replicas`
+// +kubebuilder:printcolumn:name="Ready",type=string,JSONPath=`.status.phase`
+// +kubebuilder:printcolumn:name="type",type=string,JSONPath=`.spec.type`
+// +kubebuilder:printcolumn:name="dbType",type=string,JSONPath=`.spec.database.type`
+// +kubebuilder:printcolumn:name="Version",type=string,JSONPath=`.status.version`
+// +kubebuilder:printcolumn:name="CreateTime",type=string,JSONPath=`.metadata.creationTimestamp`
 type Nacos struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
