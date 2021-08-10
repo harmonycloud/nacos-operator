@@ -10,12 +10,14 @@ type Services interface {
 	ConfigMap
 	StatefulSet
 	Service
+	Job
 }
 
 type services struct {
 	ConfigMap
 	StatefulSet
 	Service
+	Job
 }
 
 // New returns a new Kubernetes service.
@@ -24,5 +26,6 @@ func NewK8sService(kubecli kubernetes.Interface, logger log.Logger) Services {
 		ConfigMap:   NewConfigMapService(kubecli, logger),
 		StatefulSet: NewStatefulSetService(kubecli, logger),
 		Service:     NewServiceService(kubecli, logger),
+		Job:         NewJobService(kubecli, logger),
 	}
 }

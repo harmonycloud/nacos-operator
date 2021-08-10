@@ -6,6 +6,7 @@ image:
   repository: nacos/nacos-server
   pullPolicy: IfNotPresent
   tag: "1.4.1"
+  mysqlInitImage: registry.cn-hangzhou.aliyuncs.com/shenkonghui/mysql-client
 
 imagePullSecrets: []
 nameOverride: ""
@@ -17,7 +18,7 @@ database:
   mysqlPort: 3306
   mysqlUser: root
   mysqlDb: nacos
-  mysqlPassword: "123456"
+  mysqlPassword: "dangerous"
 
 volume:
   enabled: false

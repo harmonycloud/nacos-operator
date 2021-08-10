@@ -10,7 +10,7 @@ nacos-operator项目，快速在K8s上面部署构建nacos。
 ## 快速开始
 ```
 # 直接使用helm方式安装operator
-cd chart/nacos-operator && helm install nacos-operator . && cd ../..
+helm install nacos-operator ./chart/nacos-operator 
 
 # 如果没有helm, 使用kubectl进行安装, 默认安装在default下面
 kubectl apply -f chart/nacos-operator/nacos-operator-all.yaml
@@ -129,6 +129,7 @@ make demo clear=true
 | --- | --- | --- |
 | spec.type | 集群类型 | 目前支持standalone 和 cluster |
 | spec.image | 镜像地址，兼容社区镜像 | nacos/nacos-server:1.4.1 |
+| spec.mysqlInitImage | mysql数据初始镜像地址，mysql模式下将自动导入数据库 | registry.cn-hangzhou.aliyuncs.com/shenkonghui/mysql-client |
 | spec.replicas | 实例数量 | 1 |
 | spec.database.type | 数据库类型 | 目前支持mysql和embedded |
 | spec.database.mysqlHost | mysql连接地址 | 默认mysql |
@@ -227,7 +228,10 @@ spec:
 make install
 
 # 以源码方式运行operator
-# make run
+make run
+
+# 编译operator镜像
+make image_operator IMG=<your image repo>
 ```
 
 

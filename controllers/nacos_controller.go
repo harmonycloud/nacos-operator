@@ -24,7 +24,7 @@ import (
 	"nacos.io/nacos-operator/pkg/service/operator"
 
 	"github.com/go-logr/logr"
-	v1 "k8s.io/api/apps/v1"
+	appsv1 "k8s.io/api/apps/v1"
 	k8sErrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -100,6 +100,7 @@ func (r *NacosReconciler) ReconcileWork(instance *nacosgroupv1alpha1.Nacos) bool
 	} {
 		fun(instance)
 	}
+
 	return true
 }
 
@@ -115,7 +116,7 @@ func filterByLabel(label map[string]string) bool {
 func (r *NacosReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&nacosgroupv1alpha1.Nacos{}).
-		Owns(&v1.StatefulSet{}).
+		Owns(&appsv1.StatefulSet{}).
 		Complete(r)
 }
 

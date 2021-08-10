@@ -4,7 +4,7 @@ metadata:
   name: nacos
 spec:
   type: standalone
-  image: nacos/nacos-server:1.4.1
+  image: nacos/nacos-server:v2.0.3
   replicas: 1
   resources:
     requests:

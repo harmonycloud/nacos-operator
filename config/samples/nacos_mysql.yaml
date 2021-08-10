@@ -14,6 +14,7 @@ spec:
     limits:
       cpu: 2
       memory: 2Gi
+  mysqlInitImage: "registry.cn-hangzhou.aliyuncs.com/choerodon-tools/mysql-client:10.2.15-r0"
   database:
     type: mysql
     mysqlHost: mysql
@@ -21,4 +22,5 @@ spec:
     mysqlUser: root
     mysqlPort: "3306"
     mysqlPassword: "123456"
+
 
