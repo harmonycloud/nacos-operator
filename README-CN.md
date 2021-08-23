@@ -168,6 +168,8 @@ spec:
 ```
 
 mysql数据库
+
+该模式下需要提供外部mysql连接信息，会自动创建创建nacos数据库，并执行初始化sql
 ```
 apiVersion: nacos.io/v1alpha1
 kind: Nacos

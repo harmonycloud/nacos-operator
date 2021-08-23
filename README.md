@@ -11,7 +11,7 @@ nacos-operator, quickly deploy and build nacos on K8s.
 ## Quick start
 ```
 # Install operator directly using helm
-cd chart/nacos-operator && helm install nacos-operator . && cd ../..
+helm install nacos-operator ./chart/nacos-operator 
 
 # If there is no helm, use kubectl to install it, and install it under default by default
 kubectl apply -f chart/nacos-operator/nacos-operator-all.yaml
@@ -152,6 +152,8 @@ spec:
 ```
 
 mysql
+
+In this mode, you need to provide external mysql connection information, it will automatically create the nacos database, and execute the initialization sql
 ```
 apiVersion: nacos.io/v1alpha1
 kind: Nacos
